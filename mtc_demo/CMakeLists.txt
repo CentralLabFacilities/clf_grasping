@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mtc_demos)
+project(mtc_demo)
 
 if ("${CMAKE_VERSION}" VERSION_LESS "3.1")
 	add_compile_options(-std=c++14)
@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
 	moveit_task_constructor_core
 	rviz_marker_tools
 	eigen_conversions
+	diagnostic_updater
+	std_srvs
+	tiago_grasping_msgs
 )
 
 catkin_package(
@@ -23,9 +26,12 @@ catkin_package(
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  include
 )
 
-add_executable(tiago src/tiago.cpp)
-target_link_libraries(tiago ${catkin_LIBRARIES})
 
+add_executable(tiago src/tiago.cpp src/server.cpp)
+add_executable(mtc_server src/node.cpp src/server.cpp)
+target_link_libraries(tiago ${catkin_LIBRARIES})
+target_link_libraries(mtc_server ${catkin_LIBRARIES})
 
