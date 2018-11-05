@@ -14,7 +14,7 @@
 
 using namespace moveit::task_constructor;
 
-Task createTask(std::string id)
+Task createPickTask(std::string id)
 {
   Task t("tiago_grasp");
   std::string tool_frame = "gripper_grasping_frame";

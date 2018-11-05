@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
-project(tiago_grasping_msgs)
+project(clf_grasping_msgs)
 
 set(MSG_DEPS geometry_msgs actionlib_msgs)
 

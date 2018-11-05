@@ -7,6 +7,8 @@
 #include <moveit/task_constructor/stages/pick.h>
 #include <moveit/task_constructor/stages/connect.h>
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
+#include <moveit/task_constructor/stages/move_relative.h>
+#include <moveit/task_constructor/solvers/cartesian_path.h>
 
 #include <ros/ros.h>
 #include <moveit_msgs/CollisionObject.h>
@@ -115,10 +117,13 @@ void plan(Task& t)
   initial_stage = initial.get();
   t.add(std::move(initial));
 
-  // planner used for connect
+  // planners
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
   pipeline->setPlannerId("RRTConnectkConfigDefault");
   pipeline->setProperty("max_ik_solutions", 1u);
+
+  auto cartesian = std::make_shared<solvers::CartesianPath>();
+	cartesian->setProperty("jump_threshold", 0.0);
 
   // connect to pick
   stages::Connect::GroupPlannerVector planners = { { eef, pipeline }, { arm, pipeline } };
@@ -158,6 +163,46 @@ void plan(Task& t)
   home->setProperty("group", "arm_torso");
   home->setProperty("goal", "home");
   t.add(std::move(home));
+
+  // Place on table
+  auto place = std::make_unique<stages::MoveTo>("move to place", pipeline);
+	place->setProperty("group", arm);
+  geometry_msgs::PoseStamped target;
+  target.header.frame_id = "base_link";
+  target.pose.position.x = 0.5;
+  target.pose.position.y = 0;
+  target.pose.position.z = 0.51;
+  target.pose.orientation.w = 0;
+  target.pose.orientation.z = 1;
+  place->setGoal(target);
+  t.add(std::move(place));
+
+  // release object
+  auto pose_generator = new stages::GenerateGraspPose("generate release pose");
+  pose_generator->setAngleDelta(.2);
+  pose_generator->setPreGraspPose("open");
+  pose_generator->setGraspPose("closed");
+
+  auto ungrasp = std::make_unique<stages::SimpleUnGrasp>(std::unique_ptr<MonitoringGenerator>(pose_generator));
+  ungrasp->setProperty("object", std::string("object"));
+  ungrasp->setProperty("eef", eef);
+  ungrasp->remove(-1);  // remove last stage (pose generator)
+
+  // retract right hand
+  auto retract = std::make_unique<stages::MoveRelative>("retract", cartesian);
+  retract->restrictDirection(stages::MoveRelative::FORWARD);
+  retract->setProperty("group", arm);
+  retract->setIKFrame(tool_frame);
+  retract->setProperty("marker_ns", std::string("retract"));
+  geometry_msgs::TwistStamped motion;
+  motion.header.frame_id = tool_frame;
+  motion.twist.linear.z = -1.0;
+  retract->setDirection(motion);
+  retract->setProperty("min_distance", 0.05);
+  retract->setProperty("max_distance", 0.1);
+  ungrasp->insert(std::move(retract), -1);  // insert retract as last stage in ungrasp
+
+  t.add(std::move(ungrasp));
 
   try
   {

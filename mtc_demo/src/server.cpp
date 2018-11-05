@@ -89,7 +89,7 @@ void Server::clearWorldObjects()
 void Server::executeGraspItem(const tiago_grasping_msgs::GraspItemGoalConstPtr& goal)
 {
   // graspItemFeedback_;
-  auto task = createTask(goal->id);
+  auto task = createPickTask(goal->id);
   ROS_INFO_STREAM("Planning to grasp: " << goal->id);
 
   try
