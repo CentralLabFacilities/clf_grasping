@@ -8,7 +8,7 @@
 #include <std_srvs/Empty.h>
 #include <moveit_msgs/ApplyPlanningScene.h>
 #include <moveit_msgs/GetPlanningScene.h>
-#include <tiago_grasping_msgs/GraspItemAction.h>
+#include <clf_grasping_msgs/GraspItemAction.h>
 
 #include <moveit_msgs/CollisionObject.h>
 #include <shape_msgs/SolidPrimitive.h>
@@ -29,10 +29,10 @@ private:
   void diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper&);
   diagnostic_updater::Updater diagnostic_;
 
-  actionlib::SimpleActionServer<tiago_grasping_msgs::GraspItemAction> graspItemAs_;
-  void executeGraspItem(const tiago_grasping_msgs::GraspItemGoalConstPtr& goal);
-  tiago_grasping_msgs::GraspItemFeedback graspItemFeedback_;
-  tiago_grasping_msgs::GraspItemResult graspItemResult_;
+  actionlib::SimpleActionServer<clf_grasping_msgs::GraspItemAction> graspItemAs_;
+  void executeGraspItem(const clf_grasping_msgs::GraspItemGoalConstPtr& goal);
+  clf_grasping_msgs::GraspItemFeedback graspItemFeedback_;
+  clf_grasping_msgs::GraspItemResult graspItemResult_;
 
   bool clearPlanningScene(ClearPlanningSceneReq& req, ClearPlanningSceneRes& res);
   ros::ServiceServer clearPlanningSceneSrv_;

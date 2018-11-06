@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 	eigen_conversions
 	diagnostic_updater
 	std_srvs
-	tiago_grasping_msgs
+	clf_grasping_msgs
 )
 
 catkin_package(
@@ -29,9 +29,14 @@ include_directories(
   include
 )
 
-
 add_executable(tiago src/tiago.cpp src/server.cpp)
 add_executable(mtc_server src/node.cpp src/server.cpp)
 target_link_libraries(tiago ${catkin_LIBRARIES})
 target_link_libraries(mtc_server ${catkin_LIBRARIES})
 
+install(TARGETS
+	mtc_server tiago
+    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+    )

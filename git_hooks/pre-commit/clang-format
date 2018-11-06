@@ -22,7 +22,7 @@ DELETE_OLD_PATCHES=true
 # only parse files with the extensions in FILE_EXTS. Set to true or false.
 # if false every changed file in the commit will be parsed with clang-format.
 # if true only files matching one of the extensions are parsed with clang-format.
-PARSE_EXTS=false
+PARSE_EXTS=true
 
 # file types to parse. Only effective when PARSE_EXTS is true.
 FILE_EXTS=".c .h .cpp .hpp .cc .hh .cxx"

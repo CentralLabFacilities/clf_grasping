@@ -86,7 +86,7 @@ void Server::clearWorldObjects()
   psi_.removeCollisionObjects(ids);
 }
 
-void Server::executeGraspItem(const tiago_grasping_msgs::GraspItemGoalConstPtr& goal)
+void Server::executeGraspItem(const clf_grasping_msgs::GraspItemGoalConstPtr& goal)
 {
   // graspItemFeedback_;
   auto task = createPickTask(goal->id);

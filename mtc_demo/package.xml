@@ -12,8 +12,8 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>diagnostic_updater</depend>
-  <depend>srd_srvs</depend>
-  <depend>tiago_grasping_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>clf_grasping_msgs</depend>
 
   <build_depend>moveit_ros_planning_interface</build_depend>
   <build_depend>moveit_task_constructor_core</build_depend>
