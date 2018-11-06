@@ -34,6 +34,12 @@ add_executable(mtc_server src/node.cpp src/server.cpp)
 target_link_libraries(tiago ${catkin_LIBRARIES})
 target_link_libraries(mtc_server ${catkin_LIBRARIES})
 
+install(PROGRAMS
+        scripts/spawn_scene.py
+        scripts/clear_scene.py
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 install(TARGETS
 	mtc_server tiago
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

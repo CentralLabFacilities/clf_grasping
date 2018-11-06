@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 #)
 
 #add_service_files(DIRECTORY srv FILES
+#	ClearPlanningScene.srv
 #)
 
 add_action_files(DIRECTORY action FILES
