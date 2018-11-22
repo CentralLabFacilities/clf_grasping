@@ -35,7 +35,8 @@ target_link_libraries(tiago ${catkin_LIBRARIES})
 target_link_libraries(mtc_server ${catkin_LIBRARIES})
 
 install(PROGRAMS
-        scripts/spawn_scene.py
+        scripts/spawn_scene_cylinder.py
+		scripts/spawn_scene_tea.py
         scripts/clear_scene.py
         DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
