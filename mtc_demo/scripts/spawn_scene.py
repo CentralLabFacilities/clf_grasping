@@ -62,8 +62,8 @@ def createObject(px,py,pz,h,r):
 
 def addObjects():
 	objects = []
-	objects.append(createTable(0.6,0,0.36,0.4,1))
-	objects.append(createObject(0.5,0,0.5,0.2,0.02))
+	objects.append(createTable(0.6,0,0.36+0.36,0.4,1))
+	objects.append(createObject(0.5,0,0.5+0.36,0.2,0.02))
 	spawnObjects(objects)
 
 if __name__ == "__main__":
