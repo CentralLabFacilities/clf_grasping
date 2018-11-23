@@ -1,4 +1,4 @@
-#pragma once
+#include "mtc_demo/tiago_tasks.h"
 
 #include <ros/ros.h>
 
@@ -14,7 +14,7 @@
 
 using namespace moveit::task_constructor;
 
-Task createPickTask(std::string id)
+Task TiagoTasks::createPickTask(std::string id)
 {
   Task t("tiago_grasp");
   std::string tool_frame = "gripper_grasping_frame";

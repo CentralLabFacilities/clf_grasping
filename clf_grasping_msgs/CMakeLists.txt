@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(clf_grasping_msgs)
 
-set(MSG_DEPS geometry_msgs actionlib_msgs)
+set(MSG_DEPS geometry_msgs actionlib_msgs moveit_task_constructor_msgs)
 
 find_package(catkin REQUIRED COMPONENTS
 	message_generation
@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_action_files(DIRECTORY action FILES
 	PickUpPose.action
 	GraspItem.action
+	PlanGrasp.action
 )
 
 generate_messages(DEPENDENCIES ${MSG_DEPS})

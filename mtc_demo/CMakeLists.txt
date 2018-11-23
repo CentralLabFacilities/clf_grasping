@@ -30,7 +30,7 @@ include_directories(
 )
 
 add_executable(tiago src/tiago.cpp src/server.cpp)
-add_executable(mtc_server src/node.cpp src/server.cpp)
+add_executable(mtc_server src/node.cpp src/server.cpp src/tiago_tasks.cpp)
 target_link_libraries(tiago ${catkin_LIBRARIES})
 target_link_libraries(mtc_server ${catkin_LIBRARIES})
 

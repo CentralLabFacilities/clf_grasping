@@ -18,16 +18,6 @@ generate_dynamic_reconfigure_options(
   cfg/SphericalGrasp.cfg
   )
 
-add_action_files(
-  FILES
-  PickUpPose.action
-)
-
-generate_messages(
-  DEPENDENCIES
-  actionlib_msgs geometry_msgs
-)
-
 catkin_package(
 )
 

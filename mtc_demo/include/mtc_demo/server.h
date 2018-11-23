@@ -9,10 +9,13 @@
 #include <moveit_msgs/ApplyPlanningScene.h>
 #include <moveit_msgs/GetPlanningScene.h>
 #include <clf_grasping_msgs/GraspItemAction.h>
+#include <clf_grasping_msgs/PlanGraspAction.h>
 
 #include <moveit_msgs/CollisionObject.h>
 #include <shape_msgs/SolidPrimitive.h>
 #include <moveit_msgs/PlanningScene.h>
+
+#include "mtc_demo/task_constructor.h"
 
 typedef std_srvs::Empty::Request ClearPlanningSceneReq;
 typedef std_srvs::Empty::Response ClearPlanningSceneRes;
@@ -20,9 +23,10 @@ typedef std_srvs::Empty::Response ClearPlanningSceneRes;
 class Server
 {
 public:
-  Server();
+  Server(TaskConstructor* tc);
 
 private:
+  TaskConstructor* tc_;
   ros::NodeHandle nh_;
   moveit::planning_interface::PlanningSceneInterface psi_;
 
@@ -33,6 +37,9 @@ private:
   void executeGraspItem(const clf_grasping_msgs::GraspItemGoalConstPtr& goal);
   clf_grasping_msgs::GraspItemFeedback graspItemFeedback_;
   clf_grasping_msgs::GraspItemResult graspItemResult_;
+
+  actionlib::SimpleActionServer<clf_grasping_msgs::PlanGraspAction> planGraspAs_;
+  void executePlanGrasp(const clf_grasping_msgs::PlanGraspGoalConstPtr& goal);
 
   bool clearPlanningScene(ClearPlanningSceneReq& req, ClearPlanningSceneRes& res);
   ros::ServiceServer clearPlanningSceneSrv_;

@@ -1,12 +1,13 @@
 #include "mtc_demo/server.h"
 
-#include "mtc_demo/tiago.h"
-
-Server::Server()
+Server::Server(TaskConstructor* tc)
   : nh_("mtc_server")
   , diagnostic_(nh_)
   , graspItemAs_(nh_, "grasp_object", boost::bind(&Server::executeGraspItem, this, _1), false)
+  , planGraspAs_(nh_, "plan_grasp", boost::bind(&Server::executePlanGrasp, this, _1), false)
 {
+  tc_ = tc;
+
   // wait until time ROS_TIME is initialized
   ros::Duration d(0.50);
   d.sleep();
@@ -15,9 +16,10 @@ Server::Server()
 
   getSceneClient_ = nh_.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
   applySceneClient_ = nh_.serviceClient<moveit_msgs::ApplyPlanningScene>("/apply_planning_scene");
-  graspItemAs_.start();
 
   ROS_INFO_STREAM("Waiting for servers to come online...");
+  graspItemAs_.start();
+  planGraspAs_.start();
   getSceneClient_.waitForExistence();
   applySceneClient_.waitForExistence();
 
@@ -86,24 +88,44 @@ void Server::clearWorldObjects()
   psi_.removeCollisionObjects(ids);
 }
 
+void Server::executePlanGrasp(const clf_grasping_msgs::PlanGraspGoalConstPtr& goal)
+{
+  clf_grasping_msgs::PlanGraspFeedback feedback;
+  clf_grasping_msgs::PlanGraspResult result;
+
+  auto task = tc_->createPickTask(goal->id);
+  ROS_INFO_STREAM("Planning to grasp: " << goal->id);
+
+  result.solutions.clear();
+
+  if (!task.plan())
+  {
+    ROS_ERROR_STREAM("planning failed");
+    planGraspAs_.setAborted();
+    return;
+  }
+
+  for (auto solution : task.solutions())
+  {
+    moveit_task_constructor_msgs::Solution msg;
+    solution->fillMessage(msg);
+    result.solutions.push_back(msg);
+  }
+
+  planGraspAs_.setSucceeded(result);
+}
+
 void Server::executeGraspItem(const clf_grasping_msgs::GraspItemGoalConstPtr& goal)
 {
   // graspItemFeedback_;
-  auto task = createPickTask(goal->id);
+  auto task = tc_->createPickTask(goal->id);
   ROS_INFO_STREAM("Planning to grasp: " << goal->id);
 
-  try
+  if (!task.plan())
   {
-    if (!task.plan())
-    {
-      ROS_ERROR_STREAM("planning failed");
-      graspItemAs_.setAborted();
-      return;
-    }
-  }
-  catch (const InitStageException& e)
-  {
-    ROS_ERROR_STREAM("planning failed with exception" << std::endl << e << task);
+    ROS_ERROR_STREAM("planning failed");
+    graspItemAs_.setAborted();
+    return;
   }
 
   // ROS_INFO_STREAM( "Using Solution:" << std::endl <<
