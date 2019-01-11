@@ -19,7 +19,7 @@ def classify_3d():
     try:
         client = rospy.ServiceProxy(srv, Detect3D)
         resp = client()
-        return resp.detections.detections
+        return resp.detections
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
 
