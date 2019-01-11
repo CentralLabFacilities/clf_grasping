@@ -52,7 +52,7 @@ def fit_objects(detections, shapes = []):
             for hyp in detect3d.results:
                 objectid = objectid + str(hyp.id) + ";"
         else:
-            objectid = "unknown" + i
+            objectid = "unknown" + str(i)
             i += 1
         print("fitting object: " + objectid)
         try:

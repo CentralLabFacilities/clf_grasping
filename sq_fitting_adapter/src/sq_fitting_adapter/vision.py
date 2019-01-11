@@ -407,7 +407,7 @@ class ObjectFitter(object):
             raise Exception("could not fit any shapes")
 
         co = CollisionObject()
-        co.primitive.append(obj)
+        co.primitives.append(obj)
         co.primitive_poses.append(pose)
 
         ret.collison_object = obj
