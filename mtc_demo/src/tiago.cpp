@@ -61,8 +61,8 @@ void detachObjects(ros::NodeHandle nh)
   // auto objects = scene.world.collision_objects;
 
   moveit_msgs::PlanningScene update;
-  update.is_diff = true;
-  update.robot_state.is_diff = true;
+  update.is_diff = 1u;
+  update.robot_state.is_diff = 1u;
 
   for (auto attached_object : attached_objects)
   {
@@ -78,7 +78,7 @@ void detachObjects(ros::NodeHandle nh)
   ros::spinOnce();
 }
 
-void spawnObject(ros::NodeHandle nh)
+void spawnObject(ros::NodeHandle /*nh*/)
 {
   moveit::planning_interface::PlanningSceneInterface psi;
 
@@ -114,7 +114,7 @@ void spawnObject(ros::NodeHandle nh)
   psi.applyCollisionObject(o);
 }
 
-Task create_carry()
+Task createCarry()
 {
   ROS_INFO_STREAM("create carry task");
   Task t("task");
@@ -283,7 +283,7 @@ Task create_carry()
   return t;
 }
 
-Task create_pick()
+Task createPick()
 {
   Task t("task");
 
@@ -353,7 +353,7 @@ Task create_pick()
   return t;
 }
 
-Task create_pick_place()
+Task createPickPlace()
 {
   Task t("task");
 
@@ -485,16 +485,18 @@ int main(int argc, char** argv)
   spawnObject(nh);
 
   std::map<std::string, TaskCreator> tasks;
-  tasks["pick_place"] = &create_pick_place;
-  tasks["pick"] = &create_pick;
-  tasks["carry"] = &create_carry;
+  tasks["pick_place"] = &createPickPlace;
+  tasks["pick"] = &createPick;
+  tasks["carry"] = &createCarry;
 
   while (true)
   {
     std::cout << std::endl << "Tasks: " << std::endl;
     std::cout << " detach; clear; spawn; reset q(quit)" << std::endl << " ";
     for (auto& kv : tasks)
+    {
       std::cout << kv.first << "; ";
+    }
     std::cout << std::endl << "ENTER TASK NAME: " << std::endl;
 
     std::string name;
@@ -534,7 +536,7 @@ int main(int argc, char** argv)
     auto search = tasks.find(name);
     if (search != tasks.end())
     {
-      std::cout << "Found " << search->first << " " << search->second << '\n';
+      std::cout << "Found " << search->first << " " << (search->second != nullptr) << '\n';
     }
     else
     {

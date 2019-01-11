@@ -1,0 +1,49 @@
+object_fitter_config:
+  default:
+    shape_preferences: ["box", "cylinder", "sphere"]
+    verbose_level: 1
+    camera_frame: my_camera
+    cloud_frame: base_link
+    table_safety_margin: 0.0
+    default_table_height: 0.6
+    copy_original_data: false
+  apple:
+    shape_preferences: ["sphere"]
+    verbose_level: 1
+    camera_frame: my_camera
+    cloud_frame: base_link
+    table_safety_margin: 0.0
+    default_table_height: 0.6
+    copy_original_data: false
+  can:
+    shape_preferences: ["cylinder"]
+    verbose_level: 1
+    camera_frame: my_camera
+    cloud_frame: base_link
+    table_safety_margin: 0.0
+    default_table_height: 0.6
+    copy_original_data: false
+  milk:
+    shape_preferences: ["box"]
+    verbose_level: 1
+    camera_frame: my_camera
+    cloud_frame: base_link
+    table_safety_margin: 0.0
+    default_table_height: 0.6
+    copy_original_data: false
+  plate:
+    shape_preferences: ["flatcylinder", "box"]
+    verbose_level: 1
+    camera_frame: my_camera
+    cloud_frame: base_link
+    table_safety_margin: 0.0
+    default_table_height: 0.6
+    copy_original_data: false
+  all:
+    shape_preferences: ["all"]
+    verbose_level: 1
+    camera_frame: my_camera
+    cloud_frame: base_link
+    table_safety_margin: 0.0
+    default_table_height: 0.6
+    copy_original_data: false

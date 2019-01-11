@@ -1,0 +1,8 @@
+# Transform a cloud to an collisonObject
+
+# (Optional) list shapes to try e.g. "sphere cylinder box"
+string[] shapes
+
+sensor_msgs/PointCloud2 source_cloud
+---
+moveit_msgs/CollisionObject collison_object

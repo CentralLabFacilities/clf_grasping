@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>clf_grasping_msgs</name>
-  <version>0.0.0</version>
-  <description>Test Messages</description>
+  <name>sq_fitting_adapter</name>
+  <version>0.0.1</version>
+  <description>ROS object fitter, handling interfaces to object fitting</description>
 
   <maintainer email="lruegeme@techfak.uni-bielefeld.de">Leroy Rügemer</maintainer>
   <author>Leroy Ruegemer</author>
@@ -11,16 +11,14 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>message_generation</build_depend>
-
+  <depend>vision_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>clf_grasping_msgs</depend>
+  <depend>rospy</depend>
   <depend>sensor_msgs</depend>
   <depend>moveit_msgs</depend>
-  
-  <depend>actionlib_msgs</depend>
-  <depend>moveit_task_constructor_msgs</depend>
-
-  <exec_depend>message_runtime</exec_depend>
+  <depend>sq_fitting_ros</depend>
+  <depend>actionlib</depend>
 
   <export>
   </export>

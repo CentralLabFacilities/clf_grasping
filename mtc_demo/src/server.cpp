@@ -44,7 +44,7 @@ void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
   stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Status");
 }
 
-bool Server::clearPlanningScene(ClearPlanningSceneReq& req, ClearPlanningSceneRes& res)
+bool Server::clearPlanningScene(ClearPlanningSceneReq& /*req*/, ClearPlanningSceneRes& /*res*/)
 {
   detachObjects();
   clearWorldObjects();
@@ -64,8 +64,8 @@ void Server::detachObjects()
   // auto objects = scene.world.collision_objects;
 
   moveit_msgs::PlanningScene update;
-  update.is_diff = true;
-  update.robot_state.is_diff = true;
+  update.is_diff = 1u;
+  update.robot_state.is_diff = 1u;
 
   for (auto attached_object : attached_objects)
   {

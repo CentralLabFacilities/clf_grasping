@@ -1,0 +1,16 @@
+object_fitter_config:
+  default:
+    # MANDATORY: sets which shapes should try to be fitted (among: box, flatcylinder, cylinder, ellipsoid, sphere, any, all)
+    shape_preferences: ["cylinder", "any"]
+    # optional, verbosity level
+    verbose_level: 1
+    # optional but highly recommanded, needed for view direction finding relative to pointcloud clusters
+    camera_frame: my_camera
+    # optional but recommanded (default to global param, which has default to baselink), fitted primitives are presented in this frame
+    cloud_frame: map
+    # optional (default to global param), moves the table a little higher than viewed (used for extending objects to the table)
+    table_safety_margin: 0.0
+    # optional (default to global param), if no support surface is provided, use this table
+    default_table_height: 0.4
+    # optional (default to global param), copy the original pointcloud back in the message
+    copy_original_data: false
