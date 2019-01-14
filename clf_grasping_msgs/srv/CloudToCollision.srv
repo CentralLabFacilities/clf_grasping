@@ -5,4 +5,4 @@ string[] shapes
 
 sensor_msgs/PointCloud2 source_cloud
 ---
-moveit_msgs/CollisionObject collison_object
+moveit_msgs/CollisionObject collision_object

@@ -87,7 +87,7 @@ class ObjectFitter(object):
         if camera_frame != "":
             self._camera_frame = camera_frame
         else:
-            self._camera_frame = "unknown_camera_link"
+            self._camera_frame = "xtion_depth_optical_frame"
 
         self._cloud_frame = rospy.get_param('~cloud_frame', "base_link")
 
@@ -237,9 +237,13 @@ class ObjectFitter(object):
                 rospy.logdebug("getTFPos extrapolation frame orig " + str(frame_orig) + " to " + str(frame_dest) + " transform not found ")
                 rospy.logdebug(e)
                 return None
-            return np.array([tf_Stamped.transform.translation.x * 100.0,
-                             tf_Stamped.transform.translation.y * 100.0,
-                             tf_Stamped.transform.translation.z * 100.0])
+
+            pose = Pose()
+            pose.position.x = tf_Stamped.transform.translation.x
+            pose.position.y = tf_Stamped.transform.translation.y
+            pose.position.z = tf_Stamped.transform.translation.z
+            pose.orientation = tf_Stamped.transform.rotation
+            return pose
         else:
             rospy.logdebug("getTFPos frame dest " + str(frame_dest) + " doest not exist")
             return None
@@ -300,13 +304,13 @@ class ObjectFitter(object):
                 source_frame_id = self.cloud_frame
             camera_pos = self.getTFPos(source_frame_id, self.camera_frame)
             if camera_pos is not None:
-                req.camera_pose.pose.position = Point(camera_pos[0], camera_pos[1], camera_pos[2])
+                req.camera_pose.pose = camera_pos
                 req.camera_pose.header.frame_id = source_frame_id
             else:
-                rospy.logwarn("camera pose not found, forcing to [0.4, 0, 1.35] in /base_link")
-                req.camera_pose.pose.position = Point(40, 0, 135)
-                req.camera_pose.header.frame_id = "base_link"
-
+                rospy.logwarn("camera pose not found using [0,0,0] in pcl_frame_id " + source_frame_id)
+                req.camera_pose.pose.position = Point(0, 0, 0)
+                req.camera_pose.header.frame_id = source_frame_id
+            print("camera:" + str(req.camera_pose))
             if plane is not None:
                 req.table_plane.coef = plane
             try:
@@ -398,9 +402,8 @@ class ObjectFitter(object):
         sq_params = self.process_pointcloud(req.source_cloud, plane, req.shapes)
         if sq_params is not None and len(sq_params.data) > 0:
             (obj,pose) = self.create_primitive_and_pose_from_sq(sq_params.data)
-            print("fitted object")
-            print(obj)
-            print(pose)
+            print("fitted object@:")
+            print(pose.position)
         else:
             #TODO make cube
             print("could not fit object")
@@ -409,6 +412,6 @@ class ObjectFitter(object):
         co = CollisionObject()
         co.primitives.append(obj)
         co.primitive_poses.append(pose)
+        ret.collision_object = co
 
-        ret.collison_object = obj
         return ret
