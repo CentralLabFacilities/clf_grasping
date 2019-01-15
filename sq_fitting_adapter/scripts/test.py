@@ -11,6 +11,7 @@ from sensor_msgs.msg import PointCloud2
 
 from clf_object_recognition_msgs.srv  import Detect3D
 from clf_grasping_msgs.srv import CloudToCollision
+from clf_object_recognition_msgs.msg import BoundingBox3DArray
 
 from geometry_msgs.msg import Point32, Pose, Point, Quaternion
 
@@ -19,7 +20,7 @@ import tf2_geometry_msgs
 import tf2_ros
 
 def classify_3d():
-    srv = "/detect_objects"
+    srv = "/object_merger/detect_objects"
     print("waiting for service " + srv)
     rospy.wait_for_service(srv)
     print("detecting objects...")
@@ -93,6 +94,15 @@ def send_clouds(detections):
         #print(detect3d.source_cloud)
         pub.publish(detect3d.source_cloud)
 
+def send_boxes(objects):
+    print("publishing boxes")
+    boxes = BoundingBox3DArray()
+    for detect3d in objects:
+        boxes.header = detect3d.header
+        boxes.boxes.append(detect3d.bbox)
+    
+    pubbox.publish(boxes)
+
 def fit_objects(detections, shapes = []):
     co_objects = []
     i = 1
@@ -154,9 +164,11 @@ if __name__ == "__main__":
     tf_Buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_Buffer)
     pub = rospy.Publisher('/clouds', PointCloud2, queue_size=10)
+    pubbox = rospy.Publisher('/bbs', BoundingBox3DArray, queue_size=10)
 
     classes = classify_3d()
     classes = filter_classes(classes)
     send_clouds(classes)
+    send_boxes(classes)
     co_objects = fit_objects(classes)
     add_to_planning_scene(co_objects)
