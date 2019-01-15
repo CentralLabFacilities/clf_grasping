@@ -283,6 +283,76 @@ Task createCarry()
   return t;
 }
 
+Task createPickNoLinear()
+{
+  Task t("task");
+
+  std::string tool_frame = "gripper_grasping_frame";
+  std::string eef = "gripper";
+  std::string arm = "arm_torso";  // arm
+
+  Stage* initial_stage = nullptr;
+  auto initial = std::make_unique<stages::CurrentState>("current state");
+  initial_stage = initial.get();
+  t.add(std::move(initial));
+
+  // planners
+  auto pipeline = std::make_shared<solvers::PipelinePlanner>();
+  pipeline->setPlannerId("RRTConnectkConfigDefault");
+  pipeline->setProperty("max_ik_solutions", 4u);
+
+  auto cartesian = std::make_shared<solvers::CartesianPath>();
+  cartesian->setProperty("jump_threshold", 0.0);
+
+  {  // Open gripper first
+    auto stage = std::make_unique<stages::MoveTo>("open gripper", pipeline);
+    stage->setGroup(eef);
+    stage->setGoal("open");
+    t.add(std::move(stage));
+  }
+
+  // connect to pick
+  stages::Connect::GroupPlannerVector planners = { { eef, pipeline }, { arm, pipeline } };
+  auto connect = std::make_unique<stages::Connect>("connect", planners);
+  connect->properties().configureInitFrom(Stage::PARENT);
+  t.add(std::move(connect));
+
+  // grasp generator
+  auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
+  grasp_generator->setAngleDelta(.2);
+  grasp_generator->setPreGraspPose("open");
+  grasp_generator->setGraspPose("closed2");
+  grasp_generator->setMonitoredStage(initial_stage);
+
+  auto grasp = std::make_unique<stages::SimpleGrasp>(std::move(grasp_generator));
+  grasp->setIKFrame(Eigen::Affine3d::Identity(), tool_frame);
+  grasp->setProperty("max_ik_solutions", 1u);
+
+  auto pick = std::make_unique<stages::Pick>(std::move(grasp));
+  pick->setProperty("eef", eef);
+  pick->setProperty("object", std::string("object"));
+  pick->setProperty("eef_frame", tool_frame);
+  geometry_msgs::TwistStamped approach;
+  approach.header.frame_id = tool_frame;
+  approach.twist.linear.x = 0.0;
+  pick->setApproachMotion(approach, 0.05, 0.1);
+
+  geometry_msgs::TwistStamped lift;
+  lift.header.frame_id = "base_link";
+  lift.twist.linear.z = 1.0;
+  pick->setLiftMotion(lift, 0.03, 0.05);
+
+  t.add(std::move(pick));
+
+  // carry
+  auto home = std::make_unique<stages::MoveTo>("to transport", pipeline);
+  home->setProperty("group", "arm");
+  home->setProperty("goal", "transport");
+  t.add(std::move(home));
+
+  return t;
+}
+
 Task createPick()
 {
   Task t("task");
@@ -488,6 +558,7 @@ int main(int argc, char** argv)
   tasks["pick_place"] = &createPickPlace;
   tasks["pick"] = &createPick;
   tasks["carry"] = &createCarry;
+  tasks["pick_nonlinear"] = &createPickNoLinear;
 
   while (true)
   {

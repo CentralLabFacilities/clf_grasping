@@ -12,6 +12,12 @@ from sensor_msgs.msg import PointCloud2
 from clf_object_recognition_msgs.srv  import Detect3D
 from clf_grasping_msgs.srv import CloudToCollision
 
+from geometry_msgs.msg import Point32, Pose, Point, Quaternion
+
+import tf2_geometry_msgs
+
+import tf2_ros
+
 def classify_3d():
     srv = "/detect_objects"
     print("waiting for service " + srv)
@@ -20,7 +26,7 @@ def classify_3d():
     try:
         client = rospy.ServiceProxy(srv, Detect3D)
         resp = client()
-        print("detection done")
+        print("got " + str(len(resp.detections)) + " objects classified")
         return resp.detections
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
@@ -28,24 +34,63 @@ def classify_3d():
 def add_to_planning_scene(objects):
     scene_diff = PlanningScene()
     scene_diff.world.collision_objects = objects
-    scene_diff.is_diff = True
+    scene_diff.is_diff = False
     srv = "/apply_planning_scene"
     print("waiting for service " + srv)
     rospy.wait_for_service(srv)
-    print("adding " + str(len(objects)) + " objects ...")
+    #print("adding " + str(len(objects)) + " objects ...")
     try:
         apply = rospy.ServiceProxy(srv, ApplyPlanningScene)
-        print(scene_diff)
+        #print(scene_diff)
         resp = apply(scene_diff)
         return resp
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
 
+def filter_classes(detections):
+    print("filtering detections")
+    filtered = []
+    for detect3d in detections:
+        if detect3d.header.frame_id is "":
+            print("filtered empty frame id object")
+            continue
+
+        print("bounding box: "+str(detect3d.bbox))
+
+        pose = PoseStamped()
+        pose.pose = detect3d.bbox.center
+        pose.header = detect3d.header
+        # print("pose: \n" + str(pose))
+        transform = getTFPos(pose.header.frame_id,"map")
+        # print("transform: \n" + str(transform))
+        map_center = tf2_geometry_msgs.do_transform_pose(pose, transform)
+        # print("center point: \n" + str(map_center))
+        surface = map_center.pose.position.z + detect3d.bbox.size.z
+
+        if map_center < 0:
+            print("filtered negative center heigth")
+            continue
+
+        print("surface@: " + str(surface))
+        if surface < 100:
+            print("filtered low surface heigth < 100")
+            continue
+        
+
+        filtered.append(detect3d)
+    return filtered
+
+    
+    pose.position.x = tf_Stamped.transform.translation.x
+    pose.position.y = tf_Stamped.transform.translation.y
+    pose.position.z = tf_Stamped.transform.translation.z
+    pose.orientation = tf_Stamped.transform.rotation
+
+
 def send_clouds(detections):
     print("publishing clouds")
-    pub = rospy.Publisher('/clouds', PointCloud2, queue_size=10)
     for detect3d in detections:
-        print(detect3d.source_cloud)
+        #print(detect3d.source_cloud)
         pub.publish(detect3d.source_cloud)
 
 def fit_objects(detections, shapes = []):
@@ -80,11 +125,38 @@ def fit_objects(detections, shapes = []):
     print("fitting finished")
     return co_objects
 
+def getTFPos(frame_orig, frame_dest):
+        """
+        use TF2 to get the current pos of a frame
+        """
+        rospy.logdebug("getTFPos source_frame %s target_frame %s, target_frame", frame_orig, frame_dest)
+        if tf_Buffer.can_transform(frame_dest, frame_orig , rospy.Time(), rospy.Duration(1.0)):
+            try:
+                tf_Stamped = tf_Buffer.lookup_transform(frame_dest, frame_orig, rospy.Time(0))
+                return tf_Stamped
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException) as e:
+                rospy.logdebug("getTFPos lookup frame orig " + str(frame_orig) + " to " + str(frame_dest) + " transform not found ")
+                rospy.logdebug(e)
+                return None
+            except tf2_ros.ExtrapolationException, e:
+                rospy.logdebug("getTFPos extrapolation frame orig " + str(frame_orig) + " to " + str(frame_dest) + " transform not found ")
+                rospy.logdebug(e)
+                return None
+        else:
+            rospy.logdebug("getTFPos frame dest " + str(frame_dest) + " doest not exist")
+            return None
 
 if __name__ == "__main__":
+
     rospy.init_node('clouds', anonymous=True)
+
+    # TF listener
+    tf_Buffer = tf2_ros.Buffer()
+    tf_listener = tf2_ros.TransformListener(tf_Buffer)
+    pub = rospy.Publisher('/clouds', PointCloud2, queue_size=10)
+
     classes = classify_3d()
-    print("got " + str(len(classes)) + " objects classified")
+    classes = filter_classes(classes)
     send_clouds(classes)
     co_objects = fit_objects(classes)
     add_to_planning_scene(co_objects)

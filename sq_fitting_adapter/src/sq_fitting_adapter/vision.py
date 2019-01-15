@@ -226,9 +226,9 @@ class ObjectFitter(object):
         use TF2 to get the current pos of a frame
         """
         rospy.logdebug("getTFPos source_frame %s target_frame %s, target_frame", frame_orig, frame_dest)
-        if self.tf_Buffer.can_transform(frame_orig, frame_dest, rospy.Time(), rospy.Duration(1.0)):
+        if self.tf_Buffer.can_transform(frame_dest, frame_orig, rospy.Time(), rospy.Duration(1.0)):
             try:
-                tf_Stamped = self.tf_Buffer.lookup_transform(frame_orig, frame_dest, rospy.Time(0))
+                tf_Stamped = self.tf_Buffer.lookup_transform(frame_dest, frame_orig, rospy.Time(0))
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException) as e:
                 rospy.logdebug("getTFPos lookup frame orig " + str(frame_orig) + " to " + str(frame_dest) + " transform not found ")
                 rospy.logdebug(e)
