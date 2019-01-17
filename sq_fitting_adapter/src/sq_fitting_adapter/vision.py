@@ -56,7 +56,7 @@ class ObjectFitter(object):
         self.object_uids = []
         self.object_centers = {}
         self.table_height = self._default_table_height
-        self.shape_preference = "cbs"
+        self.shape_preference = "cb"
         self.copy_original_data = self._copy_original_data
         self.table_planes = {}
         self.table_planes['default'] = np.array([0.0, 0.0, 1.0, -self.table_height])

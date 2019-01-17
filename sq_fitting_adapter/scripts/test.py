@@ -48,13 +48,21 @@ def add_to_planning_scene(objects):
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
 
-def filter_classes(detections):
-    print("filtering detections")
+def filter_frames(detections):
+    print("filtering detections with empty frames")
     filtered = []
     for detect3d in detections:
         if detect3d.header.frame_id is "":
             print("filtered empty frame id object")
             continue
+        filtered.append(detect3d)
+
+    return filtered
+
+def filter_poses(detections):
+    print("filtering detection poses")
+    filtered = []
+    for detect3d in detections:
 
         print("bounding box: "+str(detect3d.bbox))
 
@@ -73,8 +81,8 @@ def filter_classes(detections):
             continue
 
         print("surface@: " + str(surface))
-        if surface < 100:
-            print("filtered low surface heigth < 100")
+        if surface < 0.2:
+            print("filtered low surface heigth < 0.3m")
             continue
         
 
@@ -167,7 +175,8 @@ if __name__ == "__main__":
     pubbox = rospy.Publisher('/bbs', BoundingBox3DArray, queue_size=10)
 
     classes = classify_3d()
-    classes = filter_classes(classes)
+    classes = filter_frames(classes)
+    classes = filter_poses(classes)
     send_clouds(classes)
     send_boxes(classes)
     co_objects = fit_objects(classes)
