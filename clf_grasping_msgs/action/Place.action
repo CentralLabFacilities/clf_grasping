@@ -1,0 +1,16 @@
+# Surface to place object on
+string surface
+
+# Target Position, used if surface is empty
+geometry_msgs/PoseStamped place_pose
+
+---
+# Comes from moveit_msgs/MoveItErrorCodes
+int32 error_code
+
+# Result of execution
+ManipulationResult result
+
+---
+# current stage/subtrajectory during execution
+string state

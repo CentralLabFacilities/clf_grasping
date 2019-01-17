@@ -1,6 +1,0 @@
-#Object id to grasp
-string id
----
-# Comes from moveit_msgs/MoveItErrorCodes
-int32 error_code
----

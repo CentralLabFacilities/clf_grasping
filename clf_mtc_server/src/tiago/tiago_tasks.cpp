@@ -1,4 +1,4 @@
-#include "mtc_demo/tiago_tasks.h"
+#include "clf_mtc_server/tiago/tiago_tasks.h"
 
 #include <ros/ros.h>
 
@@ -13,6 +13,10 @@
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
 
 using namespace moveit::task_constructor;
+
+void TiagoTasks::init(ros::NodeHandle& /*unused*/)
+{
+}
 
 Task TiagoTasks::createPickTask(std::string id)
 {
@@ -70,5 +74,12 @@ Task TiagoTasks::createPickTask(std::string id)
   home->setProperty("goal", "home");
   t.add(std::move(home));
 
+  return t;
+}
+
+moveit::task_constructor::Task TiagoTasks::createPlaceTask(std::string /*surface*/,
+                                                           geometry_msgs::PoseStamped /*unused*/)
+{
+  Task t("tiago_place");
   return t;
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(mtc_demo)
+project(clf_mtc_server)
 
 if ("${CMAKE_VERSION}" VERSION_LESS "3.1")
 	add_compile_options(-std=c++14)
@@ -29,18 +29,12 @@ include_directories(
   include
 )
 
-add_executable(tiago src/tiago.cpp)
-target_link_libraries(tiago ${catkin_LIBRARIES})
+add_executable(clf_mtc_server src/node.cpp src/server.cpp src/tiago/tiago_tasks.cpp)
+target_link_libraries(clf_mtc_server ${catkin_LIBRARIES})
 
-install(PROGRAMS
-        scripts/spawn_scene_cylinder.py
-		scripts/spawn_scene_tea.py
-        scripts/clear_scene.py
-        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 install(TARGETS
-	tiago
+	clf_mtc_server 
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

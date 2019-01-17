@@ -1,0 +1,13 @@
+# Object id to grasp
+string id
+
+---
+# Comes from moveit_msgs/MoveItErrorCodes
+int32 error_code
+
+# Result of execution
+ManipulationResult result
+
+---
+# current stage/subtrajectory during execution
+string state

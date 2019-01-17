@@ -8,18 +8,20 @@ find_package(catkin REQUIRED COMPONENTS
 	${MSG_DEPS}
 )
 
-# ROS messages, services and actions
-#add_message_files(DIRECTORY msg FILES
-#)
+#ROS messages, services and actions
+add_message_files(DIRECTORY msg FILES
+	ManipulationResult.msg
+)
 
 add_service_files(DIRECTORY srv FILES
 	CloudToCollision.srv
 )
 
 add_action_files(DIRECTORY action FILES
-	PickUpPose.action
-	GraspItem.action
-	PlanGrasp.action
+	Pick.action
+	PlanPick.action
+	Place.action
+	PlanPlace.action
 )
 
 generate_messages(DEPENDENCIES ${MSG_DEPS})

@@ -1,0 +1,10 @@
+# Surface to place object on
+string surface
+
+# Target Position, used if surface is empty
+geometry_msgs/PoseStamped place_pose
+
+---
+moveit_task_constructor_msgs/Solution[] solutions
+
+---

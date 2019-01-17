@@ -7,7 +7,7 @@
   <arg name="table_safety_margin" default="0.0" />
   <arg name="camera_frame" default="" />
   <arg name="cloud_frame" default="base_link" />
-  <arg name="obj_fitter_configs" default="$(find object_fitter)/config/default_config.yaml" />
+  <arg name="obj_fitter_configs" default="$(find sq_fitting_adapter)/config/default_config.yaml" />
   <rosparam command="load" file="$(arg obj_fitter_configs)" />
 
   <!-- object fitter -->
