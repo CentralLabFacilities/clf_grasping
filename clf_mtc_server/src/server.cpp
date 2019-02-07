@@ -75,12 +75,17 @@ void Server::detachObjects()
   update.is_diff = 1u;
   update.robot_state.is_diff = 1u;
 
+  // to detach we have to also remove the removed objects from world?
+  // http://docs.ros.org/indigo/api/moveit_tutorials/html/doc/pr2_tutorials/planning/src/doc/planning_scene_ros_api_tutorial.html#detach-an-object-from-the-robot
+  // yes, "planning_scene.world.collision_objects.push_back(attached_object.object);" still uses the remove operation
+  // it does not detach and add to the world without the remove operation
   for (auto attached_object : attached_objects)
   {
     attached_object.object.operation = attached_object.object.REMOVE;
     update.robot_state.attached_collision_objects.push_back(attached_object);
     update.world.collision_objects.push_back(attached_object.object);
   }
+
   moveit_msgs::ApplyPlanningScene req;
   req.request.scene = update;
   ROS_DEBUG_STREAM("sending scene: " << update);
