@@ -89,7 +89,7 @@ void spawnObject(ros::NodeHandle /*nh*/)
   o.primitive_poses.resize(1);
   o.primitive_poses[0].position.x = 0.64;
   o.primitive_poses[0].position.y = 0.0;
-  o.primitive_poses[0].position.z = 0.52;
+  o.primitive_poses[0].position.z = 0.54;
   o.primitive_poses[0].orientation.w = 1.0;
   o.primitives.resize(1);
   o.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
