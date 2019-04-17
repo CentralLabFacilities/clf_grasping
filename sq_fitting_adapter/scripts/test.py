@@ -3,6 +3,7 @@
 import sys
 import rospy
 
+import moveit_commander
 from moveit_msgs.msg import CollisionObject, PlanningScene
 from moveit_msgs.srv import ApplyPlanningScene
 from geometry_msgs.msg import PoseStamped
@@ -13,7 +14,7 @@ from clf_object_recognition_msgs.srv  import Detect3D
 from clf_grasping_msgs.srv import CloudToCollision
 from clf_object_recognition_msgs.msg import BoundingBox3DArray
 
-from geometry_msgs.msg import Point32, Pose, Point, Quaternion
+from geometry_msgs.msg import Point32, Pose, Point, Quaternion, PoseStamped
 
 import tf2_geometry_msgs
 
@@ -32,6 +33,7 @@ def classify_3d():
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
 
+# Bug: this seems to clear the the planning scene (including the acm)
 def add_to_planning_scene(objects):
     scene_diff = PlanningScene()
     scene_diff.world.collision_objects = objects
@@ -47,6 +49,39 @@ def add_to_planning_scene(objects):
         return resp
     except rospy.ServiceException, e:
         print "Service call failed: %s"%e
+
+def helper_make_cylinder(name, pose, height, radius):
+        co = CollisionObject()
+        co.operation = CollisionObject.ADD
+        co.id = name
+        co.header = pose.header
+        cylinder = SolidPrimitive()
+        cylinder.type = SolidPrimitive.CYLINDER
+        cylinder.dimensions = [height, radius]
+        co.primitives = [cylinder]
+        co.primitive_poses = [pose.pose]
+        return co
+
+def add_to_planning_scene2(objects):
+    print("add_to_planning_scene2: got "+str(len(objects))+" objects")
+    scene = moveit_commander.PlanningSceneInterface()
+    rospy.sleep(2)
+    for obj in objects:
+        obj.operation=obj.ADD
+        print(obj)
+        #scene._pub_co.publish(obj)
+        p = PoseStamped()
+        p.header = obj.header
+        p.pose = obj.primitive_poses[0]
+        #scene.add_box(obj.id, p, size=(obj.primitives[0].dimensions[0], obj.primitives[0].dimensions[1], obj.primitives[0].dimensions[1]))
+        if obj.primitives[0].type==obj.primitives[0].BOX:
+            scene.add_box(obj.id, p, size=(obj.primitives[0].dimensions[0], obj.primitives[0].dimensions[1], obj.primitives[0].dimensions[2]))
+        elif obj.primitives[0].type==obj.primitives[0].CYLINDER:
+            #the real add_cylinder function is not available in kinetic
+            #scene.add_cylinder(obj.id, obj.primitive_poses[0], obj.primitives[0].dimensions[0], obj.primitives[0].dimensions[1])
+            scene._pub_co.publish(helper_make_cylinder(obj.id, p, obj.primitives[0].dimensions[0], obj.primitives[0].dimensions[1]))
+        else:
+            print("add_to_planning_scene: unknown shape: "+str(obj.primitives[0].type))
 
 def filter_frames(detections):
     print("filtering detections with empty frames")
@@ -84,6 +119,7 @@ def filter_poses(detections):
         if surface < 0.2:
             print("filtered low surface heigth < 0.3m")
             continue
+        
         
 
         filtered.append(detect3d)
@@ -180,4 +216,5 @@ if __name__ == "__main__":
     send_clouds(classes)
     send_boxes(classes)
     co_objects = fit_objects(classes)
-    add_to_planning_scene(co_objects)
+    add_to_planning_scene2(co_objects)
+    #add_to_planning_scene(co_objects)
