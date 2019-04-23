@@ -2,6 +2,9 @@
 
 # (Optional) list shapes to try e.g. "sphere cylinder box"
 string[] shapes
+# (Optional) table
+shape_msgs/Plane table_plane
+bool use_plane
 
 sensor_msgs/PointCloud2 source_cloud
 ---
