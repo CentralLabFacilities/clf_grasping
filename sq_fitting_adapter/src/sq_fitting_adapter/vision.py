@@ -312,7 +312,7 @@ class ObjectFitter(object):
                 req.camera_pose.header.frame_id = source_frame_id
             print("camera:" + str(req.camera_pose))
             if plane is not None:
-                req.table_plane.coef = plane
+                req.table_plane = plane
             try:
                 # query fitting
                 res = self.sq_client(req)
@@ -398,7 +398,10 @@ class ObjectFitter(object):
     def cb_cloud_to_co(self, req):
         ret = CloudToCollisionResponse()
 
-        plane = None
+        if req.use_plane:
+            plane = req.table_plane
+        else: 
+            plane = None
         sq_params = self.process_pointcloud(req.source_cloud, plane, req.shapes)
         if sq_params is not None and len(sq_params.data) > 0:
             (obj,pose) = self.create_primitive_and_pose_from_sq(sq_params.data)
