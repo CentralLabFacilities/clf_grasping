@@ -29,7 +29,11 @@ include_directories(
   include
 )
 
-add_executable(clf_mtc_server src/node.cpp src/server.cpp src/tiago/tiago_tasks.cpp)
+add_executable(clf_mtc_server 
+    src/node.cpp src/server.cpp 
+    src/tiago/tiago_tasks_cupro.cpp
+    src/tiago/tiago_tasks.cpp
+    )
 target_link_libraries(clf_mtc_server ${catkin_LIBRARIES})
 
 

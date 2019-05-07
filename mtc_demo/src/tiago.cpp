@@ -3,6 +3,7 @@
 #include <moveit/task_constructor/stages/current_state.h>
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/task_constructor/stages/generate_grasp_pose.h>
+#include <moveit/task_constructor/stages/generate_place_pose.h>
 #include <moveit/task_constructor/stages/simple_grasp.h>
 #include <moveit/task_constructor/stages/pick.h>
 #include <moveit/task_constructor/stages/compute_ik.h>
@@ -10,6 +11,7 @@
 #include <moveit/task_constructor/stages/modify_planning_scene.h>
 #include <moveit/task_constructor/stages/move_relative.h>
 
+#include <moveit/task_constructor/solvers/joint_interpolation.h>
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
 
@@ -28,6 +30,10 @@
 using namespace moveit::task_constructor;
 
 typedef Task (*TaskCreator)();
+
+std::string tool_frame = "cupro_grasping_frame";
+std::string eef = "gripper";
+std::string arm = "arm_torso";  // arm
 
 void clearPlanningScene()
 {
@@ -114,24 +120,188 @@ void spawnObject(ros::NodeHandle /*nh*/)
   psi.applyCollisionObject(o);
 }
 
+// ***********************************
+// ***********************************
+
+Task* createTask(Stage** initial_out)
+{
+  Task* task = new Task("task");
+  Task& t = *task;
+
+  Stage* initial;
+  t.add(Stage::pointer(initial = new stages::CurrentState("current state")));
+  // t.add(Stage::pointer(initial =
+  //       allowCollisions("allow fingertip-table collision", {"frame"},
+  // {"rh_ffdistal", "rh_mfdistal", "rh_rfdistal", "rh_lfdistal", "rh_thdistal",
+  //  "lh_ffdistal", "lh_mfdistal", "lh_rfdistal", "lh_lfdistal", "lh_thdistal"})));
+
+  // auto fix = new stages::FixCollisionObjects();
+  // fix->setMaxPenetration(0.02);
+  // geometry_msgs::Vector3 correction;
+  // correction.z = 0.002;
+  // fix->setDirection(correction);
+  // t.add(Stage::pointer(fix));
+  // initial = fix;
+
+  if (initial_out)
+    *initial_out = initial;
+  return task;
+}
+
+// add a pick sub task to container and return the created container
+ContainerBase* addPick(ContainerBase& container, Stage* initial, const std::string& object = "object")
+{
+  // planner used for connect
+  auto interpolate = std::make_shared<solvers::JointInterpolationPlanner>();
+  auto pipeline = std::make_shared<solvers::PipelinePlanner>();
+  pipeline->setPlannerId("RRTConnect");
+  pipeline->setProperty("max_ik_solutions", 1u);
+
+  // connect to pick
+  stages::Connect::GroupPlannerVector planners = { { eef, pipeline }, { arm, pipeline } };
+  auto connect = new stages::Connect("approach pick", planners);
+  // connect->properties().configureInitFrom(Stage::PARENT);
+  container.insert(Stage::pointer(connect));
+
+  // {  // Open gripper first
+  //   auto stage = std::make_unique<stages::MoveTo>("open gripper", pipeline);
+  //   stage->setGroup("gripper");
+  //   stage->setGoal("open");
+  //   container.insert(std::move(stage));
+  // }
+
+  // grasp generator
+
+  // via actioncakk, get from agni/demos
+  // auto grasp_generator = new stages::GraspProvider();
+  // grasp_generator->setProperty("config", grasp_config);
+  // grasp_generator->setMonitoredStage(initial);
+
+  auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
+  grasp_generator->setAngleDelta(.2);
+  grasp_generator->setPreGraspPose("open");
+  grasp_generator->setGraspPose("closed");
+  grasp_generator->setMonitoredStage(initial);
+
+  auto grasp = std::make_unique<stages::SimpleGrasp>(std::move(grasp_generator));
+  grasp->setIKFrame(Eigen::Isometry3d::Identity(), tool_frame);
+  grasp->setProperty("max_ik_solutions", 1u);
+
+  // pick container, using the generated grasp generator
+  auto pick = new stages::Pick(std::move(grasp), "pick");
+  pick->setProperty("eef", eef);
+  pick->setProperty("object", object);
+  pick->setProperty("eef_frame", tool_frame);
+
+  geometry_msgs::TwistStamped approach;
+  approach.header.frame_id = tool_frame;
+  approach.twist.linear.z = 1.0;
+  pick->setApproachMotion(approach, 0.05, 0.1);
+
+  geometry_msgs::TwistStamped lift;
+  lift.header.frame_id = "base_link";
+  lift.twist.linear.z = 1.0;
+  pick->setLiftMotion(lift, 0.03, 0.05);
+
+  container.insert(Stage::pointer(pick));
+  return pick;
+}
+
+// add a place sub task to container and return the created container
+ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry_msgs::PoseStamped& p,
+                        const std::string& name = "place")
+{
+  // planner used for connect
+  auto pipeline = std::make_shared<solvers::PipelinePlanner>();
+  pipeline->setPlannerId("RRTConnect");
+  pipeline->setProperty("max_ik_solutions", 1u);
+  // connect to pick
+  stages::Connect::GroupPlannerVector planners = { { arm, pipeline } };
+  auto connect = new stages::Connect("approach " + name, planners);
+  container.insert(Stage::pointer(connect));
+
+  // place generator
+  auto place_generator = new stages::GeneratePlacePose();
+  place_generator->setPose(p);
+  place_generator->properties().configureInitFrom(Stage::PARENT);
+  place_generator->setMonitoredStage(grasped);
+  place_generator->setForwardedProperties({ "pregrasp", "grasp" });
+
+  auto ungrasp = new stages::SimpleUnGrasp(std::unique_ptr<MonitoringGenerator>(place_generator));
+  ungrasp->setIKFrame(tool_frame);
+
+  // place container, using the generated place generator
+  auto place = new stages::Place(Stage::pointer(ungrasp), name);
+  place->setProperty("eef", eef);
+  place->setProperty("object", std::string("object"));
+
+  geometry_msgs::TwistStamped retract;
+  retract.header.frame_id = tool_frame;
+  retract.twist.linear.z = -1.0;
+  place->setRetractMotion(retract, 0.05, 0.1);
+
+  geometry_msgs::TwistStamped lift;
+  lift.header.frame_id = "base_footprint";
+  lift.twist.linear.z = -1.0;
+  place->setPlaceMotion(lift, 0.01, 0.1);
+
+  container.insert(Stage::pointer(place));
+  return place;
+}
+
+Task createModular()
+{
+  Stage* initial;
+  Task* task = createTask(&initial);
+  addPick(*task->stages(), initial);
+
+  // carry
+  auto pipeline = std::make_shared<solvers::PipelinePlanner>();
+  pipeline->setPlannerId("RRTConnect");
+  auto home = std::make_unique<stages::MoveTo>("to transport", pipeline);
+  home->setProperty("group", "arm");
+  home->setProperty("goal", "transport");
+  // task->add(std::move(home));
+
+  geometry_msgs::PoseStamped target;
+  target.header.frame_id = "base_link";
+  target.pose.position.x = 0.5;
+  target.pose.position.y = 0;
+  target.pose.position.z = 0.51;
+  target.pose.orientation.w = 1;
+  target.pose.orientation.z = 0;
+  addPlace(*task->stages(), task->stages()->findChild("pick/grasp"), target);
+
+  return std::move(*task);
+}
+
+Task createModularPick()
+{
+  Stage* initial;
+  Task* task = createTask(&initial);
+  addPick(*task->stages(), initial);
+  ROS_INFO_STREAM("Task graph:" << std::endl << *task->stages());
+  return std::move(*task);
+}
+
 Task createCarry()
 {
   ROS_INFO_STREAM("create carry task");
   Task t("task");
   t.loadRobotModel();
 
-  std::string tool_frame = "gripper_grasping_frame";
+  std::string tool_frame = "cupro_grasping_frame";
   std::string eef = "gripper";
   std::string object = "object";
   std::string arm = "arm_torso";  // arm
 
   // don't spill liquid
   moveit_msgs::Constraints upright_constraint;
-  upright_constraint.name = "gripper_grasping_frame:upright";
+  upright_constraint.name = "cupro_grasping_frame:upright";
   upright_constraint.orientation_constraints.resize(1);
   {
     moveit_msgs::OrientationConstraint& c = upright_constraint.orientation_constraints[0];
-    c.link_name = "gripper_grasping_frame";
+    c.link_name = tool_frame;
     c.header.frame_id = "base_footprint";
     c.orientation.w = 1.0;
     c.absolute_x_axis_tolerance = 0.65;
@@ -287,7 +457,7 @@ Task createPickNoLinear()
 {
   Task t("task");
 
-  std::string tool_frame = "gripper_grasping_frame";
+  std::string tool_frame = "cupro_grasping_frame";
   std::string eef = "gripper";
   std::string arm = "arm_torso";  // arm
 
@@ -298,7 +468,7 @@ Task createPickNoLinear()
 
   // planners
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
-  pipeline->setPlannerId("RRTConnectkConfigDefault");
+  pipeline->setPlannerId("RRTConnect");
   pipeline->setProperty("max_ik_solutions", 4u);
 
   auto cartesian = std::make_shared<solvers::CartesianPath>();
@@ -334,8 +504,8 @@ Task createPickNoLinear()
   pick->setProperty("eef_frame", tool_frame);
   geometry_msgs::TwistStamped approach;
   approach.header.frame_id = tool_frame;
-  approach.twist.linear.x = 0.0;
-  pick->setApproachMotion(approach, 0.05, 0.1);
+  approach.twist.linear.x = 0.1;
+  pick->setApproachMotion(approach, 0.00, 0.0);
 
   geometry_msgs::TwistStamped lift;
   lift.header.frame_id = "base_link";
@@ -357,7 +527,7 @@ Task createPick()
 {
   Task t("task");
 
-  std::string tool_frame = "gripper_grasping_frame";
+  std::string tool_frame = "cupro_grasping_frame";
   std::string eef = "gripper";
   std::string arm = "arm_torso";  // arm
 
@@ -368,7 +538,7 @@ Task createPick()
 
   // planners
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
-  pipeline->setPlannerId("RRTConnectkConfigDefault");
+  pipeline->setPlannerId("RRTConnect");
   pipeline->setProperty("max_ik_solutions", 1u);
 
   auto cartesian = std::make_shared<solvers::CartesianPath>();
@@ -383,7 +553,7 @@ Task createPick()
 
   // connect to pick
   stages::Connect::GroupPlannerVector planners = { { eef, pipeline }, { arm, pipeline } };
-  auto connect = std::make_unique<stages::Connect>("connect", planners);
+  auto connect = std::make_unique<stages::Connect>("approach pick", planners);
   connect->properties().configureInitFrom(Stage::PARENT);
   t.add(std::move(connect));
 
@@ -402,6 +572,7 @@ Task createPick()
   pick->setProperty("eef", eef);
   pick->setProperty("object", std::string("object"));
   pick->setProperty("eef_frame", tool_frame);
+
   geometry_msgs::TwistStamped approach;
   approach.header.frame_id = tool_frame;
   approach.twist.linear.x = 1.0;
@@ -427,7 +598,7 @@ Task createPickPlace()
 {
   Task t("task");
 
-  std::string tool_frame = "gripper_grasping_frame";
+  std::string tool_frame = "cupro_grasping_frame";
   std::string eef = "gripper";
   std::string arm = "arm_torso";  // arm
 
@@ -438,7 +609,7 @@ Task createPickPlace()
 
   // planners
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
-  pipeline->setPlannerId("RRTConnectkConfigDefault");
+  pipeline->setPlannerId("RRTConnect");
   pipeline->setProperty("max_ik_solutions", 1u);
 
   auto cartesian = std::make_shared<solvers::CartesianPath>();
@@ -541,6 +712,77 @@ Task createPickPlace()
   return t;
 }
 
+Task createPlace()
+{
+  Task t("task");
+
+  Stage* initial_stage = nullptr;
+  auto initial = std::make_unique<stages::CurrentState>("current state");
+  initial_stage = initial.get();
+  t.add(std::move(initial));
+
+  geometry_msgs::PoseStamped target;
+  target.header.frame_id = "base_link";
+  target.pose.position.x = 0.5;
+  target.pose.position.y = 0;
+  target.pose.position.z = 0.6;
+  target.pose.orientation.w = 1;
+  target.pose.orientation.z = 0;
+
+  // planners
+  auto pipeline = std::make_shared<solvers::PipelinePlanner>();
+  pipeline->setPlannerId("RRTConnect");
+  pipeline->setProperty("max_ik_solutions", 1u);
+
+  auto cartesian = std::make_shared<solvers::CartesianPath>();
+  cartesian->setProperty("jump_threshold", 0.0);
+
+  // connect to pick
+  stages::Connect::GroupPlannerVector planners = { { arm, pipeline } };
+  auto connect = new stages::Connect("approach place", planners);
+  t.add(Stage::pointer(connect));
+
+  {
+    // place generator
+    auto place_generator = new stages::GeneratePlacePose();
+    place_generator->setPose(target);
+    place_generator->properties().configureInitFrom(Stage::PARENT);
+    place_generator->setMonitoredStage(initial_stage);
+    place_generator->setForwardedProperties({ "pregrasp", "grasp" });
+
+    auto ungrasp = new stages::SimpleUnGrasp(std::unique_ptr<MonitoringGenerator>(place_generator));
+    ungrasp->setIKFrame(tool_frame);
+
+    // place using generated place location
+    auto place = new stages::Place(Stage::pointer(ungrasp), "place");
+    PropertyMap& props = place->properties();
+    props.set("eef", eef);
+    place->setProperty("object", std::string("object"));
+
+    geometry_msgs::TwistStamped retract;
+    retract.header.frame_id = "base_link";
+    retract.twist.linear.z = -1.0;
+    place->setRetractMotion(retract, 0.05, 0.1);
+
+    geometry_msgs::TwistStamped lift;
+    lift.header.frame_id = "base_link";
+    lift.twist.linear.z = -1.0;
+    place->setPlaceMotion(lift, 0.01, 0.1);
+
+    t.add(Stage::pointer(place));
+  }
+
+  // carry
+  {
+    auto home = std::make_unique<stages::MoveTo>("to home", pipeline);
+    home->setProperty("group", arm);
+    home->setProperty("goal", "home");
+    t.add(std::move(home));
+  }
+
+  return t;
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "tiago_mtc_test");
@@ -559,6 +801,10 @@ int main(int argc, char** argv)
   tasks["pick"] = &createPick;
   tasks["carry"] = &createCarry;
   tasks["pick_nonlinear"] = &createPickNoLinear;
+  tasks["place"] = &createPlace;
+
+  // tasks["modpp"] = &createModularPickPlace;
+  tasks["modpick"] = &createModularPick;
 
   while (true)
   {
@@ -607,7 +853,8 @@ int main(int argc, char** argv)
     auto search = tasks.find(name);
     if (search != tasks.end())
     {
-      std::cout << "Found " << search->first << " " << (search->second != nullptr) << '\n';
+      std::cout << "Found " << search->first << ", "
+                << ((search->second != nullptr) ? "task created" : "but could not create task") << std::endl;
     }
     else
     {
@@ -623,8 +870,14 @@ int main(int argc, char** argv)
       if (!t.plan())
       {
         std::cout << "planning failed" << std::endl;
+        t.enableIntrospection();
         continue;
       }
+    }
+    catch (const moveit::task_constructor::InitStageException& e)
+    {
+      std::cout << "planning failed with exception:" << std::endl << e << std::endl;
+      continue;
     }
     catch (const std::exception& e)
     {

@@ -1,4 +1,4 @@
-#include "clf_mtc_server/tiago/tiago_tasks.h"
+#include "clf_mtc_server/tiago/tiago_tasks_cupro.h"
 
 #include <ros/ros.h>
 
@@ -14,14 +14,14 @@
 
 using namespace moveit::task_constructor;
 
-void TiagoTasks::init(ros::NodeHandle& /*unused*/)
+void TiagoTasksCupro::init(ros::NodeHandle& /*unused*/)
 {
 }
 
-Task TiagoTasks::createPickTask(std::string id)
+Task TiagoTasksCupro::createPickTask(std::string id)
 {
   Task t("tiago_grasp");
-  std::string tool_frame = "gripper_grasping_frame";
+  std::string tool_frame = "cupro_grasping_frame";
   std::string eef = "gripper";
   std::string arm = "arm_torso";  // arm
 
@@ -77,8 +77,8 @@ Task TiagoTasks::createPickTask(std::string id)
   return t;
 }
 
-moveit::task_constructor::Task TiagoTasks::createPlaceTask(std::string /*surface*/,
-                                                           geometry_msgs::PoseStamped /*unused*/)
+moveit::task_constructor::Task TiagoTasksCupro::createPlaceTask(std::string /*surface*/,
+                                                                geometry_msgs::PoseStamped /*unused*/)
 {
   Task t("tiago_place");
   return t;
