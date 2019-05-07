@@ -49,7 +49,7 @@ Task TiagoTasks::createPickTask(std::string id)
   grasp_generator->setMonitoredStage(initial_stage);
 
   auto grasp = std::make_unique<stages::SimpleGrasp>(std::move(grasp_generator));
-  grasp->setIKFrame(Eigen::Affine3d::Identity(), tool_frame);
+  grasp->setIKFrame(Eigen::Isometry3d::Identity(), tool_frame);
   grasp->setProperty("max_ik_solutions", 1u);
 
   auto pick = std::make_unique<stages::Pick>(std::move(grasp));
