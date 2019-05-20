@@ -1,0 +1,5 @@
+# The bounding box/region of interest in which to search for objects
+vision_msgs/BoundingBox3D roi
+---
+# The object IDs as named in the planning scene
+string[] objectIds
