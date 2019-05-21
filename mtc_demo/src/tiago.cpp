@@ -10,6 +10,7 @@
 #include <moveit/task_constructor/stages/connect.h>
 #include <moveit/task_constructor/stages/modify_planning_scene.h>
 #include <moveit/task_constructor/stages/move_relative.h>
+#include <moveit/task_constructor/stages/generate_place_pose.h>
 
 #include <moveit/task_constructor/solvers/joint_interpolation.h>
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
@@ -25,7 +26,11 @@
 
 #include <map>
 
+
+#include <moveit/planning_scene/planning_scene.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+
+#include <cstdlib>
 
 using namespace moveit::task_constructor;
 
@@ -105,18 +110,18 @@ void spawnObject(ros::NodeHandle /*nh*/)
   psi.applyCollisionObject(o);
 
   o.id = "table";
-  o.header.frame_id = "base_link";
+  o.header.frame_id = "base_footprint";
   o.primitive_poses.resize(1);
   o.primitive_poses[0].position.x = 0.78;
   o.primitive_poses[0].position.y = 0.0;
-  o.primitive_poses[0].position.z = 0.42;
+  o.primitive_poses[0].position.z = 0.27;
   o.primitive_poses[0].orientation.w = 1.0;
   o.primitives.resize(1);
   o.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
   o.primitives[0].dimensions.resize(3);
   o.primitives[0].dimensions[0] = 0.4;
   o.primitives[0].dimensions[1] = 1;
-  o.primitives[0].dimensions[2] = 0.03;
+  o.primitives[0].dimensions[2] = 0.54;
   psi.applyCollisionObject(o);
 }
 
@@ -469,7 +474,7 @@ Task createPickNoLinear()
   // planners
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
   pipeline->setPlannerId("RRTConnect");
-  pipeline->setProperty("max_ik_solutions", 4u);
+  pipeline->setProperty("max_ik_solutions", 1u);
 
   auto cartesian = std::make_shared<solvers::CartesianPath>();
   cartesian->setProperty("jump_threshold", 0.0);
@@ -491,7 +496,7 @@ Task createPickNoLinear()
   auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
   grasp_generator->setAngleDelta(.2);
   grasp_generator->setPreGraspPose("open");
-  grasp_generator->setGraspPose("closed2");
+  grasp_generator->setGraspPose("closed");
   grasp_generator->setMonitoredStage(initial_stage);
 
   auto grasp = std::make_unique<stages::SimpleGrasp>(std::move(grasp_generator));
@@ -639,7 +644,9 @@ Task createPickPlace()
   grasp->setIKFrame(Eigen::Isometry3d::Identity(), tool_frame);
   grasp->setProperty("max_ik_solutions", 1u);
 
+  Stage* grasped = nullptr;
   auto pick = std::make_unique<stages::Pick>(std::move(grasp));
+  grasped = pick.get();
   pick->setProperty("eef", eef);
   pick->setProperty("object", std::string("object"));
   pick->setProperty("eef_frame", tool_frame);
@@ -656,58 +663,131 @@ Task createPickPlace()
   t.add(std::move(pick));
 
   // carry
-  auto home = std::make_unique<stages::MoveTo>("to home", pipeline);
+  auto home = std::make_unique<stages::MoveTo>("to carry", pipeline);
   home->setProperty("group", arm);
-  home->setProperty("goal", "home");
+  home->setProperty("goal", "transport2");
   t.add(std::move(home));
 
-  {
-    // Place on table
-    auto place = std::make_unique<stages::MoveTo>("move to place", pipeline);
-    place->setProperty("group", arm);
-    geometry_msgs::PoseStamped target;
-    target.header.frame_id = "base_link";
-    target.pose.position.x = 0.5;
-    target.pose.position.y = 0;
-    target.pose.position.z = 0.51;
-    target.pose.orientation.w = 1;
-    target.pose.orientation.z = 0;
-    place->setGoal(target);
-    t.add(std::move(place));
+  auto c2 = new stages::Connect("approach place", planners);
+  t.add(Stage::pointer(c2));
+
+
+  // {
+    // // Place on table
+    // auto place = std::make_unique<stages::MoveTo>("move to place", pipeline);
+    // place->setProperty("group", arm);
+    // geometry_msgs::PoseStamped target;
+    // target.header.frame_id = "base_link";
+    // target.pose.position.x = 0.5;
+    // target.pose.position.y = 0;
+    // target.pose.position.z = 0.51;
+    // target.pose.orientation.w = 1;
+    // target.pose.orientation.z = 0;
+    // place->setGoal(target);
+    // t.add(std::move(place));
 
     // auto wrapper = std::make_unique<stages::ComputeIK>("grasp pose", std::move(place));
     // wrapper->setMaxIKSolutions(8);
     // wrapper->setIKFrame(Eigen::Translation3d(0.05, 0, -.09), tool_frame);
     // wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "object" });
     // t.add(std::move(wrapper));
+  // }
+
+  // // release object
+  // auto pose_generator = new stages::GenerateGraspPose("generate release pose");
+  // pose_generator->setAngleDelta(.2);
+  // pose_generator->setPreGraspPose("open");
+  // pose_generator->setGraspPose("closed");
+  // pose_generator->setMonitoredStage(grasped);
+  // //grasp_generator->setMonitoredStage(initial_stage);
+
+  // auto ungrasp = std::make_unique<stages::SimpleUnGrasp>(std::unique_ptr<MonitoringGenerator>(pose_generator));
+  // ungrasp->setProperty("object", std::string("object"));
+  // ungrasp->setProperty("eef", eef);
+  // ungrasp->setProperty("max_ik_solutions", 1u);
+  // //ungrasp->remove(-1);  // remove last stage (pose generator)
+
+  {
+    geometry_msgs::PoseStamped pose;
+		pose.header.frame_id = "base_link";
+    int r1 = rand() % 100; 
+    int r2 = rand() % 100; 
+		pose.pose.position.x =  0.64 + (0.002 * r2); //0.64
+		pose.pose.position.y =  -0.2 + (0.004 * r1); //0.0;
+    pose.pose.position.z = 0.54;
+
+    auto place_generator = new stages::GeneratePlacePose();
+    place_generator->setPose(pose);
+    place_generator->properties().configureInitFrom(Stage::PARENT);
+    place_generator->setMonitoredStage(grasped);
+    place_generator->setForwardedProperties({"pregrasp", "grasp"});
+
+    auto ungrasp = new stages::SimpleUnGrasp(std::unique_ptr<MonitoringGenerator>(place_generator));
+    ungrasp->setIKFrame(tool_frame);
+
+    auto allow_touch = new stages::ModifyPlanningScene("allow object collision");
+		PropertyMap& p = allow_touch->properties();
+		p.declare<std::string>("eef");
+		p.declare<std::string>("object");
+		p.configureInitFrom(Stage::PARENT | Stage::INTERFACE, { "eef", "object" });
+
+		allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p){
+			collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
+			const std::string& eef = p.get<std::string>("eef");
+			const std::string& object = p.get<std::string>("object");
+			acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)
+			             ->getLinkModelNamesWithCollisionGeometry(), true);
+		});
+    ungrasp->insert(Stage::pointer(allow_touch), -3);
+
+    auto openg = new stages::MoveTo("openg", pipeline);
+    openg->setProperty("group", eef);
+    openg->setProperty("goal", "open");
+    ungrasp->insert(Stage::pointer(openg), -3);
+
+    ungrasp->remove(-2);
+
+
+    auto place = new stages::Place(Stage::pointer(ungrasp), "place");
+    PropertyMap& props = place->properties();
+    props.set("eef", eef);
+    props.set("object", std::string("object"));
+
+    geometry_msgs::TwistStamped retract;
+    retract.header.frame_id = tool_frame;
+    retract.twist.linear.z = -1.0;
+    place->setRetractMotion(retract, 0.05, 0.1);
+
+    geometry_msgs::TwistStamped unlift;
+    unlift.header.frame_id = "base_link";
+    unlift.twist.linear.z = -1.0;
+    place->setPlaceMotion(unlift, 0.01, 0.1);
+
+    t.add(Stage::pointer(place));
   }
 
-  // release object
-  auto pose_generator = new stages::GenerateGraspPose("generate release pose");
-  pose_generator->setAngleDelta(.2);
-  pose_generator->setPreGraspPose("open");
-  pose_generator->setGraspPose("closed");
-
-  auto ungrasp = std::make_unique<stages::SimpleUnGrasp>(std::unique_ptr<MonitoringGenerator>(pose_generator));
-  ungrasp->setProperty("object", std::string("object"));
-  ungrasp->setProperty("eef", eef);
-  ungrasp->remove(-1);  // remove last stage (pose generator)
+  {
+    // home
+    auto home2 = std::make_unique<stages::MoveTo>("to home", pipeline);
+    home2->setProperty("group", "arm");
+    home2->setProperty("goal", "transport");
+    t.add(std::move(home2));
+  }
 
   // retract right hand
-  auto retract = std::make_unique<stages::MoveRelative>("retract", cartesian);
-  retract->restrictDirection(stages::MoveRelative::FORWARD);
-  retract->setProperty("group", arm);
-  retract->setIKFrame(tool_frame);
-  retract->setProperty("marker_ns", std::string("retract"));
-  geometry_msgs::TwistStamped motion;
-  motion.header.frame_id = tool_frame;
-  motion.twist.linear.z = -1.0;
-  retract->setDirection(motion);
-  retract->setProperty("min_distance", 0.05);
-  retract->setProperty("max_distance", 0.1);
-  ungrasp->insert(std::move(retract), -1);  // insert retract as last stage in ungrasp
-
-  t.add(std::move(ungrasp));
+  // auto retract = std::make_unique<stages::MoveRelative>("retract", cartesian);
+  // retract->restrictDirection(stages::MoveRelative::FORWARD);
+  // retract->setProperty("group", arm);
+  // retract->setIKFrame(tool_frame);
+  // retract->setProperty("marker_ns", std::string("retract"));
+  // geometry_msgs::TwistStamped motion;
+  // motion.header.frame_id = "base_footprint";
+  // motion.twist.linear.z = 1.0;
+  // retract->setDirection(motion);
+  // retract->setProperty("min_distance", 0.05);
+  // retract->setProperty("max_distance", 0.1);
+  // ungrasp->insert(std::move(retract), -1);  // insert retract as last stage in ungrasp
+  // t.add(std::move(ungrasp));
 
   return t;
 }
@@ -796,6 +876,8 @@ int main(int argc, char** argv)
   clearPlanningScene();
   spawnObject(nh);
 
+  
+  
   std::map<std::string, TaskCreator> tasks;
   tasks["pick_place"] = &createPickPlace;
   tasks["pick"] = &createPick;
@@ -805,6 +887,33 @@ int main(int argc, char** argv)
 
   // tasks["modpp"] = &createModularPickPlace;
   tasks["modpick"] = &createModularPick;
+
+  if(argc == 2) {
+    auto name = argv[1];
+    auto search = tasks.find(name);
+    if (search != tasks.end())
+    {
+      std::cout << "Found " << search->first << ", "
+                << ((search->second != nullptr) ? "task created" : "but could not create task") << std::endl;
+    }
+    else
+    {
+      std::cout << name << "Not found\n";
+      return 1;
+    }
+
+    Task task = (search->second)();
+    std::cout << std::endl << "Planning Task... " << std::endl;
+    task.enableIntrospection();
+    task.plan();
+    auto it = task.solutions().begin();
+    std::string nix;
+    std::getline(std::cin, nix);
+    std::advance(it, 0);
+    auto solution = *it;
+    //std::cout << "Execute..." << std::endl;
+    //task.execute(*solution);
+  }
 
   while (true)
   {
@@ -871,6 +980,8 @@ int main(int argc, char** argv)
       {
         std::cout << "planning failed" << std::endl;
         t.enableIntrospection();
+        std::string nix;
+        std::getline(std::cin, nix);
         continue;
       }
     }
