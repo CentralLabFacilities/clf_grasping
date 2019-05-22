@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(clf_grasping_msgs)
 
-set(MSG_DEPS geometry_msgs actionlib_msgs moveit_task_constructor_msgs sensor_msgs moveit_msgs)
+set(MSG_DEPS geometry_msgs actionlib_msgs moveit_task_constructor_msgs sensor_msgs moveit_msgs vision_msgs)
 
 find_package(catkin REQUIRED COMPONENTS
 	message_generation
@@ -15,6 +15,8 @@ add_message_files(DIRECTORY msg FILES
 
 add_service_files(DIRECTORY srv FILES
 	CloudToCollision.srv
+	FindObjectsInROI.srv
+	FindTable.srv
 )
 
 add_action_files(DIRECTORY action FILES
