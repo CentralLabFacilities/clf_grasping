@@ -40,6 +40,7 @@ std::string object = "object";
 std::string tool_frame = "cupro_grasping_frame";
 std::string eef = "gripper";
 std::string arm = "arm_torso";  // arm
+double object_z = 0.515; // 0.54
 
 void clearPlanningScene()
 {
@@ -101,13 +102,13 @@ void spawnObject(ros::NodeHandle /*nh*/)
   o.primitive_poses.resize(1);
   o.primitive_poses[0].position.x = 0.64;
   o.primitive_poses[0].position.y = 0.0;
-  o.primitive_poses[0].position.z = 0.54;
+  o.primitive_poses[0].position.z = 0.515;
   o.primitive_poses[0].orientation.w = 1.0;
   o.primitives.resize(1);
   o.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
   o.primitives[0].dimensions.resize(2);
-  o.primitives[0].dimensions[0] = 0.18;
-  o.primitives[0].dimensions[1] = 0.02;
+  o.primitives[0].dimensions[0] = 0.11; //0.18;
+  o.primitives[0].dimensions[1] = 0.04; //0.02; 
   psi.applyCollisionObject(o);
 
   o.id = "table";
@@ -121,7 +122,7 @@ void spawnObject(ros::NodeHandle /*nh*/)
   o.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
   o.primitives[0].dimensions.resize(3);
   o.primitives[0].dimensions[0] = 0.9;
-  o.primitives[0].dimensions[1] = 1;
+  o.primitives[0].dimensions[1] = 2;
   o.primitives[0].dimensions[2] = 0.535;
   psi.applyCollisionObject(o);
 }
@@ -219,7 +220,7 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
   pipeline->setPlannerId("RRTConnect");
   pipeline->setProperty("max_ik_solutions", 1u);
-  pipeline->setProperty("goal_joint_tolerance", 1e-2);
+  pipeline->setProperty("goal_joint_tolerance", 1e-3);
   pipeline->setProperty("goal_position_tolerance", 1e-4);
   pipeline->setProperty("goal_orientation_tolerance", 1e-4);
 
@@ -272,14 +273,14 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
   place->setProperty("object", object);
 
   geometry_msgs::TwistStamped retract;
-  retract.header.frame_id = tool_frame;
-  retract.twist.linear.z = -1.0;
-  place->setRetractMotion(retract, 0.05, 0.1);
+  retract.header.frame_id = "base_footprint";
+  retract.twist.linear.z = 1.0;
+  place->setRetractMotion(retract, 0.06, 0.15);
 
   geometry_msgs::TwistStamped lift;
   lift.header.frame_id = "base_footprint";
   lift.twist.linear.z = -1.0;
-  place->setPlaceMotion(lift, 0.01, 0.1);
+  place->setPlaceMotion(lift, 0.04, 0.1);
 
   container.insert(Stage::pointer(place));
   return place;
@@ -324,7 +325,7 @@ Task createPlace()
     int r2 = rand() % 100; 
 		pose.pose.position.x =  0.64 + (0.003 * r2); //0.64
 		pose.pose.position.y =  -0.25 + (0.005 * r1); //0.0
-    pose.pose.position.z = 0.54;
+    pose.pose.position.z = object_z;
     addPlace(*task.stages(), initial, pose);
   }
   
@@ -393,7 +394,7 @@ Task createSimplePick()
   // planners
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
   pipeline->setPlannerId("RRTConnect");
-  pipeline->setProperty("goal_joint_tolerance", 1e-2);
+  pipeline->setProperty("goal_joint_tolerance", 1e-3);
   pipeline->setProperty("goal_position_tolerance", 1e-4);
   pipeline->setProperty("goal_orientation_tolerance", 1e-4);
   
@@ -408,7 +409,7 @@ Task createSimplePick()
   int r2 = rand() % 100; 
   pose.pose.position.x =  0.64 + (0.003 * r2); //0.64
 	pose.pose.position.y =  -0.25 + (0.005 * r1); //0.0
-  pose.pose.position.z = 0.54;
+  pose.pose.position.z = object_z;
 
   auto place_generator = new stages::GeneratePlacePose();
   place_generator->setPose(pose);
@@ -476,7 +477,7 @@ Task createSimplePickPlace()
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
   pipeline->setPlannerId("RRTConnect");
   pipeline->setProperty("max_ik_solutions", 1u);
-  pipeline->setProperty("goal_joint_tolerance", 1e-2);
+  pipeline->setProperty("goal_joint_tolerance", 5e-4);
   pipeline->setProperty("goal_position_tolerance", 1e-4);
   pipeline->setProperty("goal_orientation_tolerance", 1e-4);
 
@@ -516,12 +517,12 @@ Task createSimplePickPlace()
   geometry_msgs::TwistStamped approach;
   approach.header.frame_id = tool_frame;
   approach.twist.linear.x = 1.0;
-  pick->setApproachMotion(approach, 0.05, 0.1);
+  pick->setApproachMotion(approach, 0.02, 0.1);
 
   geometry_msgs::TwistStamped lift;
   lift.header.frame_id = "base_link";
   lift.twist.linear.z = 1.0;
-  pick->setLiftMotion(lift, 0.03, 0.05);
+  pick->setLiftMotion(lift, 0.05, 0.10);
 
   t.add(std::move(pick));
 
@@ -534,42 +535,6 @@ Task createSimplePickPlace()
   auto c2 = new stages::Connect("approach place", planners);
   t.add(Stage::pointer(c2));
 
-
-  // {
-    // // Place on table
-    // auto place = std::make_unique<stages::MoveTo>("move to place", pipeline);
-    // place->setProperty("group", arm);
-    // geometry_msgs::PoseStamped target;
-    // target.header.frame_id = "base_link";
-    // target.pose.position.x = 0.5;
-    // target.pose.position.y = 0;
-    // target.pose.position.z = 0.51;
-    // target.pose.orientation.w = 1;
-    // target.pose.orientation.z = 0;
-    // place->setGoal(target);
-    // t.add(std::move(place));
-
-    // auto wrapper = std::make_unique<stages::ComputeIK>("grasp pose", std::move(place));
-    // wrapper->setMaxIKSolutions(8);
-    // wrapper->setIKFrame(Eigen::Translation3d(0.05, 0, -.09), tool_frame);
-    // wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "object" });
-    // t.add(std::move(wrapper));
-  // }
-
-  // // release object
-  // auto pose_generator = new stages::GenerateGraspPose("generate release pose");
-  // pose_generator->setAngleDelta(.2);
-  // pose_generator->setPreGraspPose("open");
-  // pose_generator->setGraspPose("closed");
-  // pose_generator->setMonitoredStage(grasped);
-  // //grasp_generator->setMonitoredStage(initial_stage);
-
-  // auto ungrasp = std::make_unique<stages::SimpleUnGrasp>(std::unique_ptr<MonitoringGenerator>(pose_generator));
-  // ungrasp->setProperty("object", std::string("object"));
-  // ungrasp->setProperty("eef", eef);
-  // ungrasp->setProperty("max_ik_solutions", 1u);
-  // //ungrasp->remove(-1);  // remove last stage (pose generator)
-
   {
     geometry_msgs::PoseStamped pose;
 		pose.header.frame_id = "base_link";
@@ -577,7 +542,7 @@ Task createSimplePickPlace()
     int r2 = rand() % 100; 
 		pose.pose.position.x =  0.64 + (0.003 * r2); //0.64
 		pose.pose.position.y =  -0.25 + (0.005 * r1); //0.0;
-    pose.pose.position.z = 0.54;
+    pose.pose.position.z = object_z;
 
     auto place_generator = new stages::GeneratePlacePose();
     place_generator->setPose(pose);
@@ -609,6 +574,7 @@ Task createSimplePickPlace()
     ungrasp->insert(Stage::pointer(openg), -3);
 
     ungrasp->remove(-2);
+    
 
 
     auto place = new stages::Place(Stage::pointer(ungrasp), "place");
@@ -617,14 +583,16 @@ Task createSimplePickPlace()
     props.set("object", std::string("object"));
 
     geometry_msgs::TwistStamped retract;
-    retract.header.frame_id = tool_frame;
-    retract.twist.linear.z = -1.0;
-    place->setRetractMotion(retract, 0.05, 0.1);
+    retract.header.frame_id = "base_link";
+    retract.twist.linear.z = 1.0;
+    place->setRetractMotion(retract, 0.06, 0.15);
 
     geometry_msgs::TwistStamped unlift;
     unlift.header.frame_id = "base_link";
     unlift.twist.linear.z = -1.0;
-    place->setPlaceMotion(unlift, 0.01, 0.1);
+    place->setPlaceMotion(unlift, 0.04, 0.10);
+
+
 
     t.add(Stage::pointer(place));
   }
@@ -682,7 +650,7 @@ Task createCarry()
   }
 
   auto sampling_planner = std::make_shared<solvers::PipelinePlanner>();
-  sampling_planner->setProperty("goal_joint_tolerance", 1e-5);
+  sampling_planner->setProperty("goal_joint_tolerance", 1e-3);
   sampling_planner->setProperty("timeout", 10.0);
   sampling_planner->setProperty("max_ik_solutions", 8u);
 
@@ -1056,6 +1024,9 @@ int main(int argc, char** argv)
         t.execute(*solution);
         std::cout << "Done" << std::endl;
         num = -1;
+
+        std::cout << "press enter" << std::endl;
+        std::getline(std::cin, name);
       }
     }
   }
