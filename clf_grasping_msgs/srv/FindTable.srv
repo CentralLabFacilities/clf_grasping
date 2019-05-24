@@ -1,4 +1,11 @@
+# Find a table/horizontal surface
 
+# Add the table to the planning scene
+bool addToPlanningScene
 ---
-# The height of the table from the ground
-float64 height
+# The table described with a plane
+shape_msgs/Plane plane
+# The table described with a bounding box
+vision_msgs/BoundingBox3D bbox
+# The table described with points forming the hull
+geometry_msgs/Point[] hull

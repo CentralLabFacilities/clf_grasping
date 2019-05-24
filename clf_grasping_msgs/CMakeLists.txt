@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(clf_grasping_msgs)
 
-set(MSG_DEPS geometry_msgs actionlib_msgs moveit_task_constructor_msgs sensor_msgs moveit_msgs vision_msgs)
+set(MSG_DEPS geometry_msgs actionlib_msgs moveit_task_constructor_msgs sensor_msgs moveit_msgs vision_msgs shape_msgs)
 
 find_package(catkin REQUIRED COMPONENTS
 	message_generation
