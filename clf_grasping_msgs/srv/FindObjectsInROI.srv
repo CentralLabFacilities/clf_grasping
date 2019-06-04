@@ -1,0 +1,11 @@
+# Find objects in a region of interest
+
+# The bounding box/region of interest in which to search for objects
+vision_msgs/BoundingBox3D roi
+# Add the objects to the planning scene
+bool addToPlanningScene
+---
+# The object IDs as named in the planning scene
+string[] objectIds
+# The detections of the objects, corresponding to objectIds
+vision_msgs/Detection3D[] detections
