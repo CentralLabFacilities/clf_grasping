@@ -26,7 +26,6 @@
 
 #include <map>
 
-
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 
@@ -40,7 +39,7 @@ std::string object = "object";
 std::string tool_frame = "cupro_grasping_frame";
 std::string eef = "gripper";
 std::string arm = "arm_torso";  // arm
-double object_z = 0.515; // 0.54
+double object_z = 0.515;        // 0.54
 
 void clearPlanningScene()
 {
@@ -107,8 +106,8 @@ void spawnObject(ros::NodeHandle /*nh*/)
   o.primitives.resize(1);
   o.primitives[0].type = shape_msgs::SolidPrimitive::CYLINDER;
   o.primitives[0].dimensions.resize(2);
-  o.primitives[0].dimensions[0] = 0.11; //0.18;
-  o.primitives[0].dimensions[1] = 0.04; //0.02; 
+  o.primitives[0].dimensions[0] = 0.11;  // 0.18;
+  o.primitives[0].dimensions[1] = 0.04;  // 0.02;
   psi.applyCollisionObject(o);
 
   o.id = "table";
@@ -209,12 +208,11 @@ ContainerBase* addPick(ContainerBase& container, Stage* initial, const std::stri
 
   container.insert(Stage::pointer(pick));
   return pick;
-
 }
 
 // add a place sub task to container and return the created container
-ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry_msgs::PoseStamped& p, const std::string& object = "object",
-                        const std::string& name = "place")
+ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry_msgs::PoseStamped& p,
+                        const std::string& object = "object", const std::string& name = "place")
 {
   // planner used for connect
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
@@ -226,7 +224,7 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
 
   // connect to pick
   stages::Connect::GroupPlannerVector planners = { { arm, pipeline } };
-  
+
   auto connect = new stages::Connect("approach " + name, planners);
   container.insert(Stage::pointer(connect));
 
@@ -240,8 +238,8 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
   auto ungrasp = new stages::SimpleUnGrasp(std::unique_ptr<MonitoringGenerator>(place_generator));
   ungrasp->setIKFrame(tool_frame);
 
-  { 
-    //fixup ungrasp
+  {
+    // fixup ungrasp
     auto allow_touch = new stages::ModifyPlanningScene("allow object collision");
     PropertyMap& p = allow_touch->properties();
     p.declare<std::string>("eef");
@@ -249,12 +247,11 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
     p.set("eef", eef);
     p.set("object", object);
 
-    allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p){
+    allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
       collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
       const std::string& eef = p.get<std::string>("eef");
       const std::string& object = p.get<std::string>("object");
-      acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)
-                    ->getLinkModelNamesWithCollisionGeometry(), true);
+      acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)->getLinkModelNamesWithCollisionGeometry(), true);
     });
     ungrasp->insert(Stage::pointer(allow_touch), -3);
 
@@ -263,7 +260,7 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
     openg->setProperty("goal", "open");
     ungrasp->insert(Stage::pointer(openg), -3);
 
-    //remove broken open gripper
+    // remove broken open gripper
     ungrasp->remove(-2);
   }
 
@@ -284,7 +281,6 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
 
   container.insert(Stage::pointer(place));
   return place;
-
 }
 
 Task createPickPlace()
@@ -320,15 +316,15 @@ Task createPlace()
 
   {
     geometry_msgs::PoseStamped pose;
-		pose.header.frame_id = "base_link";
-    int r1 = rand() % 100; 
-    int r2 = rand() % 100; 
-		pose.pose.position.x =  0.64 + (0.003 * r2); //0.64
-		pose.pose.position.y =  -0.25 + (0.005 * r1); //0.0
+    pose.header.frame_id = "base_link";
+    int r1 = rand() % 100;
+    int r2 = rand() % 100;
+    pose.pose.position.x = 0.64 + (0.003 * r2);   // 0.64
+    pose.pose.position.y = -0.25 + (0.005 * r1);  // 0.0
     pose.pose.position.z = object_z;
     addPlace(*task.stages(), initial, pose);
   }
-  
+
   {
     // grasp pose
     auto pipeline = std::make_shared<solvers::PipelinePlanner>();
@@ -359,7 +355,7 @@ Task createPick()
     home->setProperty("goal", "transport2");
     task.add(std::move(home));
   }
-  
+
   return task;
 }
 
@@ -378,7 +374,7 @@ Task createGotoStart()
     home->setProperty("goal", "grasping");
     task.add(std::move(home));
   }
-  
+
   return task;
 }
 
@@ -397,25 +393,25 @@ Task createSimplePick()
   pipeline->setProperty("goal_joint_tolerance", 1e-3);
   pipeline->setProperty("goal_position_tolerance", 1e-4);
   pipeline->setProperty("goal_orientation_tolerance", 1e-4);
-  
+
   stages::Connect::GroupPlannerVector planners = { { eef, pipeline }, { arm, pipeline } };
 
   auto connect = new stages::Connect("approach place", planners);
   t.add(Stage::pointer(connect));
 
   geometry_msgs::PoseStamped pose;
-	pose.header.frame_id = "base_link";
-  int r1 = rand() % 100; 
-  int r2 = rand() % 100; 
-  pose.pose.position.x =  0.64 + (0.003 * r2); //0.64
-	pose.pose.position.y =  -0.25 + (0.005 * r1); //0.0
+  pose.header.frame_id = "base_link";
+  int r1 = rand() % 100;
+  int r2 = rand() % 100;
+  pose.pose.position.x = 0.64 + (0.003 * r2);   // 0.64
+  pose.pose.position.y = -0.25 + (0.005 * r1);  // 0.0
   pose.pose.position.z = object_z;
 
   auto place_generator = new stages::GeneratePlacePose();
   place_generator->setPose(pose);
   place_generator->properties().configureInitFrom(Stage::PARENT);
   place_generator->setMonitoredStage(initial_stage);
-  place_generator->setForwardedProperties({"pregrasp", "grasp"});
+  place_generator->setForwardedProperties({ "pregrasp", "grasp" });
 
   auto ungrasp = new stages::SimpleUnGrasp(std::unique_ptr<MonitoringGenerator>(place_generator));
   ungrasp->setIKFrame(tool_frame);
@@ -426,12 +422,11 @@ Task createSimplePick()
   p.declare<std::string>("object");
   p.configureInitFrom(Stage::PARENT | Stage::INTERFACE, { "eef", "object" });
 
-  allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p){
+  allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
     collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
     const std::string& eef = p.get<std::string>("eef");
     const std::string& object = p.get<std::string>("object");
-    acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)
-                  ->getLinkModelNamesWithCollisionGeometry(), true);
+    acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)->getLinkModelNamesWithCollisionGeometry(), true);
   });
   ungrasp->insert(Stage::pointer(allow_touch), -3);
 
@@ -458,11 +453,9 @@ Task createSimplePick()
   place->setPlaceMotion(unlift, 0.01, 0.1);
 
   t.add(Stage::pointer(place));
-  
+
   return t;
 }
-
-
 
 Task createSimplePickPlace()
 {
@@ -537,35 +530,34 @@ Task createSimplePickPlace()
 
   {
     geometry_msgs::PoseStamped pose;
-		pose.header.frame_id = "base_link";
-    int r1 = rand() % 100; 
-    int r2 = rand() % 100; 
-		pose.pose.position.x =  0.64 + (0.003 * r2); //0.64
-		pose.pose.position.y =  -0.25 + (0.005 * r1); //0.0;
+    pose.header.frame_id = "base_link";
+    int r1 = rand() % 100;
+    int r2 = rand() % 100;
+    pose.pose.position.x = 0.64 + (0.003 * r2);   // 0.64
+    pose.pose.position.y = -0.25 + (0.005 * r1);  // 0.0;
     pose.pose.position.z = object_z;
 
     auto place_generator = new stages::GeneratePlacePose();
     place_generator->setPose(pose);
     place_generator->properties().configureInitFrom(Stage::PARENT);
     place_generator->setMonitoredStage(grasped);
-    place_generator->setForwardedProperties({"pregrasp", "grasp"});
+    place_generator->setForwardedProperties({ "pregrasp", "grasp" });
 
     auto ungrasp = new stages::SimpleUnGrasp(std::unique_ptr<MonitoringGenerator>(place_generator));
     ungrasp->setIKFrame(tool_frame);
 
     auto allow_touch = new stages::ModifyPlanningScene("allow object collision");
-		PropertyMap& p = allow_touch->properties();
-		p.declare<std::string>("eef");
-		p.declare<std::string>("object");
-		p.configureInitFrom(Stage::PARENT | Stage::INTERFACE, { "eef", "object" });
+    PropertyMap& p = allow_touch->properties();
+    p.declare<std::string>("eef");
+    p.declare<std::string>("object");
+    p.configureInitFrom(Stage::PARENT | Stage::INTERFACE, { "eef", "object" });
 
-		allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p){
-			collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
-			const std::string& eef = p.get<std::string>("eef");
-			const std::string& object = p.get<std::string>("object");
-			acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)
-			             ->getLinkModelNamesWithCollisionGeometry(), true);
-		});
+    allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
+      collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
+      const std::string& eef = p.get<std::string>("eef");
+      const std::string& object = p.get<std::string>("object");
+      acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)->getLinkModelNamesWithCollisionGeometry(), true);
+    });
     ungrasp->insert(Stage::pointer(allow_touch), -3);
 
     auto openg = new stages::MoveTo("openg", pipeline);
@@ -574,8 +566,6 @@ Task createSimplePickPlace()
     ungrasp->insert(Stage::pointer(openg), -3);
 
     ungrasp->remove(-2);
-    
-
 
     auto place = new stages::Place(Stage::pointer(ungrasp), "place");
     PropertyMap& props = place->properties();
@@ -591,8 +581,6 @@ Task createSimplePickPlace()
     unlift.header.frame_id = "base_link";
     unlift.twist.linear.z = -1.0;
     place->setPlaceMotion(unlift, 0.04, 0.10);
-
-
 
     t.add(Stage::pointer(place));
   }
@@ -862,7 +850,6 @@ Task createPickNoLinear()
   return t;
 }
 
-
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "tiago_mtc_test");
@@ -881,7 +868,7 @@ int main(int argc, char** argv)
   tasks["pick"] = &createPick;
   tasks["place"] = &createPlace;
   tasks["pp"] = &createPickPlace;
-  
+
   tasks["spick"] = &createSimplePick;
   tasks["spp"] = &createSimplePickPlace;
 
@@ -890,8 +877,8 @@ int main(int argc, char** argv)
 
   tasks["start"] = &createGotoStart;
 
-  if(argc == 2) {
-
+  if (argc == 2)
+  {
     auto name = argv[1];
     auto search = tasks.find(name);
     if (search != tasks.end())
@@ -914,8 +901,8 @@ int main(int argc, char** argv)
     std::getline(std::cin, nix);
     std::advance(it, 0);
     auto solution = *it;
-    //std::cout << "Execute..." << std::endl;
-    //task.execute(*solution);
+    // std::cout << "Execute..." << std::endl;
+    // task.execute(*solution);
   }
 
   while (true)

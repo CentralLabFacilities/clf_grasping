@@ -1,6 +1,6 @@
 #include "clf_mtc_server/server.h"
-#include "clf_mtc_server/tiago/tiago_tasks_cupro.h"
-#include "clf_mtc_server/tiago/tiago_tasks.h"
+#include "clf_mtc_server/tasks/tiago_tasks_cupro.h"
+#include "clf_mtc_server/tasks/tiago_tasks.h"
 
 int main(int argc, char** argv)
 {

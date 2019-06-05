@@ -1,4 +1,4 @@
-#include "clf_mtc_server/tiago/tiago_tasks.h"
+#include "clf_mtc_server/tasks/tiago_tasks.h"
 
 #include <ros/ros.h>
 

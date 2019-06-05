@@ -1,4 +1,4 @@
-#include "clf_mtc_server/tiago/tiago_tasks_cupro.h"
+#include "clf_mtc_server/tasks/tiago_tasks_cupro.h"
 
 #include <ros/ros.h>
 

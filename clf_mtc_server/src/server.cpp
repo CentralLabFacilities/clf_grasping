@@ -134,7 +134,7 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   auto task = tc_->createPickTask(goal->id);
   ROS_INFO_STREAM("Planning to pick: " << goal->id);
 
-  if (!task.plan())
+  if (!task.plan(1))
   {
     ROS_ERROR_STREAM("planning failed");
     pickAs_.setAborted();
@@ -191,7 +191,7 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
   auto task = tc_->createPlaceTask(goal->surface, goal->place_pose);
   ROS_INFO_STREAM("Planning to place: ");  // << goal->id);
 
-  if (!task.plan())
+  if (!task.plan(1))
   {
     ROS_ERROR_STREAM("planning failed");
     placeAs_.setAborted();

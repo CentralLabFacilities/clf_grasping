@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 	diagnostic_updater
 	std_srvs
 	clf_grasping_msgs
+	moveit_msgs
 )
 
 catkin_package(
@@ -30,9 +31,13 @@ include_directories(
 )
 
 add_executable(clf_mtc_server 
-    src/node.cpp src/server.cpp 
-    src/tiago/tiago_tasks_cupro.cpp
-    src/tiago/tiago_tasks.cpp
+		src/node.cpp src/server.cpp 
+		src/planning_scene.cpp
+
+		src/tasks/common.cpp
+
+    src/tasks/tiago_tasks_cupro.cpp
+    src/tasks/tiago_tasks.cpp
     )
 target_link_libraries(clf_mtc_server ${catkin_LIBRARIES})
 
