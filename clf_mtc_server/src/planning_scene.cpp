@@ -1,9 +1,14 @@
 #include "clf_mtc_server/planning_scene.h"
 
 #include <ros/ros.h>
+
 #include <moveit_msgs/GetPlanningScene.h>
 #include <moveit_msgs/ApplyPlanningScene.h>
 
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+
+namespace ps
+{
 std::vector<moveit_msgs::AttachedCollisionObject> getAttachedObjects()
 {
   ros::NodeHandle nh("~");
@@ -49,6 +54,10 @@ void detachObjects()
   update.is_diff = 1u;
   update.robot_state.is_diff = 1u;
 
+  // to detach we have to also remove the removed objects from world?
+  // http://docs.ros.org/indigo/api/moveit_tutorials/html/doc/pr2_tutorials/planning/src/doc/planning_scene_ros_api_tutorial.html#detach-an-object-from-the-robot
+  // yes, "planning_scene.world.collision_objects.push_back(attached_object.object);" still uses the remove operation
+  // it does not detach and add to the world without the remove operation
   for (auto attached_object : attached_objects)
   {
     attached_object.object.operation = attached_object.object.REMOVE;
@@ -61,4 +70,16 @@ void detachObjects()
   client_apply_scene.call(req);
 
   ros::spinOnce();
+}
+
+void clear()
+{
+  moveit::planning_interface::PlanningSceneInterface psi;
+
+  // fetch all objects
+  auto objs = psi.getObjects();
+  std::vector<std::string> ids;
+  transform(objs.begin(), objs.end(), back_inserter(ids), [](auto val) { return val.first; });
+  psi.removeCollisionObjects(ids);
+}
 }

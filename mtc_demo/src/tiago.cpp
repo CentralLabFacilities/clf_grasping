@@ -877,6 +877,8 @@ int main(int argc, char** argv)
 
   tasks["start"] = &createGotoStart;
 
+  int maxplan = 1;
+
   if (argc == 2)
   {
     auto name = argv[1];
@@ -962,11 +964,11 @@ int main(int argc, char** argv)
     }
 
     Task t = (search->second)();
-    std::cout << std::endl << "Planning Task... " << std::endl;
+    std::cout << std::endl << "Planning Task... (max " << maxplan << " solutions)" << std::endl;
 
     try
     {
-      if (!t.plan())
+      if (!t.plan(maxplan))
       {
         std::cout << "planning failed" << std::endl;
         t.enableIntrospection();

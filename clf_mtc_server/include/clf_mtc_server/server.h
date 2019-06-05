@@ -3,11 +3,8 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <diagnostic_updater/diagnostic_updater.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
 
 #include <std_srvs/Empty.h>
-#include <moveit_msgs/ApplyPlanningScene.h>
-#include <moveit_msgs/GetPlanningScene.h>
 #include <clf_grasping_msgs/PickAction.h>
 #include <clf_grasping_msgs/PlaceAction.h>
 #include <clf_grasping_msgs/PlanPickAction.h>
@@ -30,7 +27,11 @@ public:
 private:
   RobotTasks* tc_;
   ros::NodeHandle nh_;
-  moveit::planning_interface::PlanningSceneInterface psi_;
+
+  // Keep old tasks in list
+  void storeTask(moveit::task_constructor::Task& t);
+  std::list<moveit::task_constructor::Task> tasks_;
+  size_t max_tasks_{ 10 };
 
   void diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper&);
   diagnostic_updater::Updater diagnostic_;
@@ -55,11 +56,4 @@ private:
   // Services
   bool clearPlanningScene(ClearPlanningSceneReq& req, ClearPlanningSceneRes& res);
   ros::ServiceServer clearPlanningSceneSrv_;
-
-  //
-  ros::ServiceClient getSceneClient_;
-  ros::ServiceClient applySceneClient_;
-
-  void detachObjects();
-  void clearWorldObjects();
 };

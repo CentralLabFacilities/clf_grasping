@@ -1,5 +1,7 @@
 #include "clf_mtc_server/server.h"
 
+#include "clf_mtc_server/planning_scene.h"
+
 Server::Server(ros::NodeHandle nh, RobotTasks* tc)
   : nh_(nh)
   , diagnostic_(nh_)
@@ -16,17 +18,11 @@ Server::Server(ros::NodeHandle nh, RobotTasks* tc)
 
   clearPlanningSceneSrv_ = nh_.advertiseService("clear_planning_scene", &Server::clearPlanningScene, this);
 
-  getSceneClient_ = nh_.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
-  applySceneClient_ = nh_.serviceClient<moveit_msgs::ApplyPlanningScene>("/apply_planning_scene");
-
   // ROS_INFO_STREAM("Waiting for servers to come online...");
   pickAs_.start();
   planPickAs_.start();
   placeAs_.start();
   planPlaceAs_.start();
-  ROS_INFO_STREAM("Waiting for moveit servers to come online...");
-  getSceneClient_.waitForExistence();
-  applySceneClient_.waitForExistence();
 
   ROS_INFO_STREAM("Init Robot Tasks...");
   tc->init(nh_);
@@ -47,6 +43,11 @@ Server::Server(ros::NodeHandle nh, RobotTasks* tc)
   spinner.stop();
 }
 
+void Server::storeTask(moveit::task_constructor::Task& t)
+{
+  tasks_.push_back(std::move(t));
+}
+
 void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
 {
   stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Status");
@@ -54,51 +55,9 @@ void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
 
 bool Server::clearPlanningScene(ClearPlanningSceneReq& /*req*/, ClearPlanningSceneRes& /*res*/)
 {
-  detachObjects();
-  clearWorldObjects();
+  ps::detachObjects();
+  ps::clear();
   return true;
-}
-
-void Server::detachObjects()
-{
-  moveit_msgs::GetPlanningScene srv;
-  srv.request.components.components =
-      srv.request.components.ROBOT_STATE_ATTACHED_OBJECTS | srv.request.components.WORLD_OBJECT_NAMES;
-  getSceneClient_.call(srv);
-  auto scene = srv.response.scene;
-  ROS_DEBUG_STREAM("current scene: " << scene);
-
-  auto attached_objects = scene.robot_state.attached_collision_objects;
-  // auto objects = scene.world.collision_objects;
-
-  moveit_msgs::PlanningScene update;
-  update.is_diff = 1u;
-  update.robot_state.is_diff = 1u;
-
-  // to detach we have to also remove the removed objects from world?
-  // http://docs.ros.org/indigo/api/moveit_tutorials/html/doc/pr2_tutorials/planning/src/doc/planning_scene_ros_api_tutorial.html#detach-an-object-from-the-robot
-  // yes, "planning_scene.world.collision_objects.push_back(attached_object.object);" still uses the remove operation
-  // it does not detach and add to the world without the remove operation
-  for (auto attached_object : attached_objects)
-  {
-    attached_object.object.operation = attached_object.object.REMOVE;
-    update.robot_state.attached_collision_objects.push_back(attached_object);
-    update.world.collision_objects.push_back(attached_object.object);
-  }
-
-  moveit_msgs::ApplyPlanningScene req;
-  req.request.scene = update;
-  ROS_DEBUG_STREAM("sending scene: " << update);
-  applySceneClient_.call(req);
-}
-
-void Server::clearWorldObjects()
-{
-  // fetch all objects
-  auto objs = psi_.getObjects();
-  std::vector<std::string> ids;
-  transform(objs.begin(), objs.end(), back_inserter(ids), [](auto val) { return val.first; });
-  psi_.removeCollisionObjects(ids);
 }
 
 void Server::executePlanPick(const clf_grasping_msgs::PlanPickGoalConstPtr& goal)
@@ -115,7 +74,7 @@ void Server::executePlanPick(const clf_grasping_msgs::PlanPickGoalConstPtr& goal
   {
     ROS_ERROR_STREAM("planning failed");
     planPickAs_.setAborted();
-    return;
+    storeTask(task);
   }
 
   for (auto solution : task.solutions())
@@ -126,6 +85,7 @@ void Server::executePlanPick(const clf_grasping_msgs::PlanPickGoalConstPtr& goal
   }
 
   planPickAs_.setSucceeded(result);
+  storeTask(task);
 }
 
 void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
@@ -138,7 +98,7 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   {
     ROS_ERROR_STREAM("planning failed");
     pickAs_.setAborted();
-    return;
+    storeTask(task);
   }
 
   // ROS_INFO_STREAM( "Using Solution:" << std::endl <<
@@ -156,6 +116,7 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
 
   ROS_INFO_STREAM("Done!");
   pickAs_.setSucceeded(pickResult_);
+  storeTask(task);
 }
 
 void Server::executePlanPlace(const clf_grasping_msgs::PlanPlaceGoalConstPtr& goal)
@@ -172,6 +133,7 @@ void Server::executePlanPlace(const clf_grasping_msgs::PlanPlaceGoalConstPtr& go
   {
     ROS_ERROR_STREAM("planning failed");
     planPlaceAs_.setAborted();
+    storeTask(task);
     return;
   }
 
@@ -183,6 +145,7 @@ void Server::executePlanPlace(const clf_grasping_msgs::PlanPlaceGoalConstPtr& go
   }
 
   planPlaceAs_.setSucceeded(result);
+  storeTask(task);
 }
 
 void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
@@ -195,6 +158,7 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
   {
     ROS_ERROR_STREAM("planning failed");
     placeAs_.setAborted();
+    storeTask(task);
     return;
   }
 
@@ -213,4 +177,5 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
 
   ROS_INFO_STREAM("Done!");
   placeAs_.setSucceeded(placeResult_);
+  storeTask(task);
 }
