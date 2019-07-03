@@ -99,6 +99,7 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
     ROS_ERROR_STREAM("planning failed");
     pickAs_.setAborted();
     storeTask(task);
+    return;
   }
 
   // ROS_INFO_STREAM( "Using Solution:" << std::endl <<
