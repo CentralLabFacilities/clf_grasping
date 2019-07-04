@@ -56,7 +56,7 @@ Task TiagoTasksCupro::createPickTask(std::string id)
   t.add(std::move(connect));
 
   // grasp generator
-  auto grasp_generator = std::make_unique<GenerateAllGraspPose>("generate grasp pose");
+  auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
   grasp_generator->setAngleDelta(.2);
   grasp_generator->setPreGraspPose("open");
   grasp_generator->setGraspPose("closed");
