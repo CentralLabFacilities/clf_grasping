@@ -119,8 +119,7 @@ void clear()
   }
   moveit_msgs::ApplyPlanningScene req;
   req.request.scene = update;
-  //ROS_INFO_STREAM("sending scene: " << update);
+  // ROS_INFO_STREAM("sending scene: " << update);
   client_apply_scene.call(req);
-
 }
 }
