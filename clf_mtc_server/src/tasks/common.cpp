@@ -13,8 +13,10 @@ Task createInitialTask(Stage** initial_out)
   Stage* initial;
   task.add(Stage::pointer(initial = new stages::CurrentState("current state")));
 
-  if (initial_out)
+  if (initial_out != nullptr)
+  {
     *initial_out = initial;
+  }
   return task;
 }
 }  // namespace tasks

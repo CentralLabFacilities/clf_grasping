@@ -122,4 +122,4 @@ void clear()
   // ROS_INFO_STREAM("sending scene: " << update);
   client_apply_scene.call(req);
 }
-}
+}  // namespace ps
