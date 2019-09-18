@@ -8,7 +8,7 @@
   <arg name="camera_frame" default="" />
   <arg name="cloud_frame" default="base_link" />
   <arg name="obj_fitter_configs" default="$(find sq_fitting_adapter)/config/default_config.yaml" />
-  <arg name="rednum" default="0" /> <!-- sq fitter reduces points in cloud to this number (if not zero) -->
+  <arg name="rednum" default="100" /> <!-- sq fitter reduces points in cloud to this number (if not zero) -->
   <rosparam command="load" file="$(arg obj_fitter_configs)" />
 
   <!-- object fitter -->
@@ -19,7 +19,7 @@
     
   </node>
 
-  <node pkg="sq_fitting_ros" type="fitting_service.py" name="sq_fitting" args="--rednum $(arg rednum)" output="screen" >
+  <node pkg="sq_fitting_ros" type="fitting_service.py" name="sq_fitting" args="-r $(arg rednum)" output="screen" >
   </node>
 
 </launch>
