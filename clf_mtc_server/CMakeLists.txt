@@ -32,6 +32,7 @@ include_directories(
 
 add_executable(clf_mtc_server 
 		src/stages/generate_all_grasp_pose.cpp
+		src/stages/grasp_generator_2_0.cpp
 
 		src/node.cpp src/server.cpp 
 		src/planning_scene.cpp

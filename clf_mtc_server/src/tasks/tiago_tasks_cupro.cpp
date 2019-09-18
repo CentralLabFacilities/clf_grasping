@@ -1,6 +1,7 @@
 #include "clf_mtc_server/tasks/tiago_tasks_cupro.h"
 
 #include "clf_mtc_server/stages/generate_all_grasp_pose.h"
+#include "clf_mtc_server/stages/grasp_generator_2_0.h"
 
 #include <ros/ros.h>
 
@@ -56,8 +57,9 @@ Task TiagoTasksCupro::createPickTask(std::string id)
   t.add(std::move(connect));
 
   // grasp generator
-  auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
-  grasp_generator->setAngleDelta(.2);
+  //auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
+  auto grasp_generator = std::make_unique<stages::GraspGenerator>("grasp generator");
+  //grasp_generator->setAngleDelta(.2);
   grasp_generator->setPreGraspPose("open");
   grasp_generator->setGraspPose("closed");
   grasp_generator->setMonitoredStage(initial_stage);
