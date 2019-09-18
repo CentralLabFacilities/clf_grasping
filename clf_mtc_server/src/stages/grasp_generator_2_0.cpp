@@ -98,12 +98,12 @@ void GraspGenerator::compute()
   robot_state.setToDefaultValues(jmg, props.get<std::string>("pregrasp"));
 
   geometry_msgs::PoseStamped target_pose_msg;
-  target_pose_msg.header.frame_id = "base_footprint";//props.get<std::string>("object");
+  target_pose_msg.header.frame_id = props.get<std::string>("object");//"base_footprint";
 
   moveit_msgs::CollisionObject object;
   scene->getCollisionObjectMsg(object, props.get<std::string>("object"));
   const uint8_t CYLINDER_CONST1 = 12; // How many steps around the cylinder
-  const float DIST_TO_OBJ = 0.22;
+  const float DIST_TO_OBJ = 0.0;//0.22;
   const float MAX_GRIPPER_OPEN = 0.12;
   if (object.primitives[0].type == object.primitives[0].CYLINDER) {
     // TODO only upright cylinders? Should work with cylinders in any
@@ -114,10 +114,10 @@ void GraspGenerator::compute()
         for (int b = -1; b < 2; b++) { // TODO do this in fixed steps instead, e.g. every 2 cm
           for (int c = 0; c < 2; c++) { // gripper 180 deg rotated
             float x, y, z;
-            tf2::Quaternion pose, grasp, total;
-            tf2::fromMsg(object.primitive_poses[0].orientation, pose);
+            tf2::Quaternion /*pose, */grasp, total;
+            //tf2::fromMsg(object.primitive_poses[0].orientation, pose);
             grasp.setRPY((c == 0 ? -M_PI / 2.0 : M_PI / 2.0), 0.0, 2.0 * M_PI / CYLINDER_CONST1 * a);
-            total = pose * grasp; // TODO switch order?
+            total = /*pose **/ grasp; // TODO switch order?
             total.normalize();
             tf2::Vector3 vec(-(DIST_TO_OBJ + object.primitives[0].dimensions[1]), object.primitives[0].dimensions[0] / 3.0 * b, 0.0), vec2(1.0, 0.0, 0.0);
             tf2::Transform trans(total);
@@ -158,8 +158,8 @@ void GraspGenerator::compute()
                b += 2) { // Two sides in each dimension: front/back, left/right,
                          // top/bottom
             for (int d = -1; d < 2; d++) {
-              tf2::Quaternion pose, grasp, total;
-              tf2::fromMsg(object.primitive_poses[0].orientation, pose);
+              tf2::Quaternion /*pose,*/ grasp, total;
+              //tf2::fromMsg(object.primitive_poses[0].orientation, pose);
               float alpha = 0.0, beta = 0.0;
               if (a == 0) {
                 grasp.setEuler(M_PI / 2.0, 0.0,
@@ -181,7 +181,7 @@ void GraspGenerator::compute()
               }
               tf2::Vector3 vec(-(DIST_TO_OBJ + alpha), beta / 3.0 * d, 0.0),
                   vec2(1.0, 0.0, 0.0);
-              total = pose * grasp; // TODO switch order?
+              total = /*pose **/ grasp; // TODO switch order?
               total.normalize();
               tf2::Transform trans(total);
               vec = trans * vec;
