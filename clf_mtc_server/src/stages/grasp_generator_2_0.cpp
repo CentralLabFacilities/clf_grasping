@@ -113,23 +113,16 @@ void GraspGenerator::compute()
       for (int a = 0; a < CYLINDER_CONST1; a++) {
         for (int b = -1; b < 2; b++) { // TODO do this in fixed steps instead, e.g. every 2 cm
           for (int c = 0; c < 2; c++) { // gripper 180 deg rotated
-            float x, y, z;
-            tf2::Quaternion /*pose, */grasp, total;
-            //tf2::fromMsg(object.primitive_poses[0].orientation, pose);
-            grasp.setRPY((c == 0 ? -M_PI / 2.0 : M_PI / 2.0), 0.0, 2.0 * M_PI / CYLINDER_CONST1 * a);
-            total = /*pose **/ grasp; // TODO switch order?
-            total.normalize();
-            tf2::Vector3 vec(-(DIST_TO_OBJ + object.primitives[0].dimensions[1]), object.primitives[0].dimensions[0] / 3.0 * b, 0.0), vec2(1.0, 0.0, 0.0);
-            tf2::Transform trans(total);
+            tf2::Quaternion grasp;
+            grasp.setRPY((c == 0 ? 0.0 : M_PI), 0.0, 2.0 * M_PI / CYLINDER_CONST1 * a);
+            grasp.normalize();
+            tf2::Vector3 vec(-(DIST_TO_OBJ + object.primitives[0].dimensions[1]), 0.0, object.primitives[0].dimensions[0] / 3.0 * b * (c == 1 ? -1.0 : 1.0));
+            tf2::Transform trans(grasp);
             vec = trans * vec;
-            vec2 = trans * vec2;
-            x = object.primitive_poses[0].position.x + vec.x();
-            y = object.primitive_poses[0].position.y + vec.y();
-            z = object.primitive_poses[0].position.z + vec.z();
-            target_pose_msg.pose.orientation = tf2::toMsg(total);
-            target_pose_msg.pose.position.x = x;
-            target_pose_msg.pose.position.y = y;
-            target_pose_msg.pose.position.z = z;
+            target_pose_msg.pose.orientation = tf2::toMsg(grasp);
+            target_pose_msg.pose.position.x = vec.x();
+            target_pose_msg.pose.position.y = vec.y();
+            target_pose_msg.pose.position.z = vec.z();
 
             InterfaceState state(scene);
             state.properties().set("target_pose", target_pose_msg);
@@ -152,57 +145,47 @@ void GraspGenerator::compute()
   } else if (object.primitives[0].type == object.primitives[0].BOX) {
     for (int a = 0; a < 3; a++) { // Three dimensions
       if (object.primitives[0].dimensions[a] <= MAX_GRIPPER_OPEN) {
-        for (int c = 0; c < 2; c++) { // Each side can have two grasp poses (90
-                                      // degrees rotated) //TODO or four?
-          for (int b = -1; b <= 1;
-               b += 2) { // Two sides in each dimension: front/back, left/right,
-                         // top/bottom
+        for (int c = 0; c < 2; c++) { // Each side can have two grasp poses (90 degrees rotated)
+          for (int b = -1; b <= 1; b += 2) { // Two sides in each dimension: front/back, left/right, top/bottom
             for (int d = -1; d < 2; d++) {
-              tf2::Quaternion /*pose,*/ grasp, total;
-              //tf2::fromMsg(object.primitive_poses[0].orientation, pose);
-              float alpha = 0.0, beta = 0.0;
-              if (a == 0) {
-                grasp.setEuler(M_PI / 2.0, 0.0,
-                               (c == 0 && b == 1 ? M_PI : 0.0) +
-                                   c * b * M_PI / 2.0);
-                alpha = object.primitives[0].dimensions[c == 0 ? 2 : 1] / 2.0;
-                beta = object.primitives[0].dimensions[c == 0 ? 1 : 2];
-              } else if (a == 1) {
-                grasp.setEuler((c == 0 && b == 1 ? M_PI : 0.0) +
-                                   c * b * M_PI / 2.0,
-                               M_PI / 2.0, 0.0);
-                alpha = object.primitives[0].dimensions[c == 0 ? 0 : 2] / 2.0;
-                beta = object.primitives[0].dimensions[c == 0 ? 2 : 0];
-              } else if (a == 2) {
-                grasp.setEuler(0.0, 0.0, (c == 0 && b == 1 ? M_PI : 0.0) +
-                                             c * b * M_PI / 2.0);
-                alpha = object.primitives[0].dimensions[c == 0 ? 0 : 1] / 2.0;
-                beta = object.primitives[0].dimensions[c == 0 ? 1 : 0];
+              for (int e = 0; e < 2; e++) {
+                  tf2::Quaternion grasp, total;
+                  float alpha = 0.0, beta = 0.0;
+                  if (a == 0) {
+                    grasp.setEuler(M_PI / 2.0, (e == 0 ? 0.0 : M_PI), (c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0);
+                    alpha = object.primitives[0].dimensions[c == 0 ? 2 : 1] / 2.0;
+                    beta = object.primitives[0].dimensions[c == 0 ? 1 : 2];
+                  } else if (a == 1) {
+                    grasp.setEuler((c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0 + (e == 0 ? 0.0 : M_PI), M_PI / 2.0, 0.0);
+                    alpha = object.primitives[0].dimensions[c == 0 ? 0 : 2] / 2.0;
+                    beta = object.primitives[0].dimensions[c == 0 ? 2 : 0];
+                  } else if (a == 2) {
+                    grasp.setEuler((e == 0 ? 0.0 : M_PI), 0.0, (c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0);
+                    alpha = object.primitives[0].dimensions[c == 0 ? 0 : 1] / 2.0;
+                    beta = object.primitives[0].dimensions[c == 0 ? 1 : 0];
+                  }
+                  tf2::Vector3 vec(-alpha, 0.0, beta / 3.0 * d);
+                  grasp.normalize();
+                  tf2::Transform trans(grasp);
+                  vec = trans * vec;
+                  target_pose_msg.pose.orientation = tf2::toMsg(grasp);
+                  target_pose_msg.pose.position.x = vec.x();
+                  target_pose_msg.pose.position.y = vec.y();
+                  target_pose_msg.pose.position.z = vec.z();
+
+                  InterfaceState state(scene);
+                  state.properties().set("target_pose", target_pose_msg);
+                  props.exposeTo(state.properties(), { "pregrasp", "grasp" });
+
+                  SubTrajectory trajectory;
+                  trajectory.setCost(0.0);
+                  trajectory.setComment(std::to_string(a) + ", " + std::to_string(c) + ", " + std::to_string(b) + ", " + std::to_string(d));
+
+                  // add frame at target pose
+                  rviz_marker_tools::appendFrame(trajectory.markers(), target_pose_msg, 0.1, "grasp frame");
+
+                  spawn(std::move(state), std::move(trajectory));
               }
-              tf2::Vector3 vec(-(DIST_TO_OBJ + alpha), beta / 3.0 * d, 0.0),
-                  vec2(1.0, 0.0, 0.0);
-              total = /*pose **/ grasp; // TODO switch order?
-              total.normalize();
-              tf2::Transform trans(total);
-              vec = trans * vec;
-              vec2 = trans * vec2;
-              target_pose_msg.pose.orientation = tf2::toMsg(total);
-              target_pose_msg.pose.position.x = object.primitive_poses[0].position.x + vec.x();
-              target_pose_msg.pose.position.y = object.primitive_poses[0].position.y + vec.y();
-              target_pose_msg.pose.position.z = object.primitive_poses[0].position.z + vec.z();
-
-              InterfaceState state(scene);
-              state.properties().set("target_pose", target_pose_msg);
-              props.exposeTo(state.properties(), { "pregrasp", "grasp" });
-
-              SubTrajectory trajectory;
-              trajectory.setCost(0.0);
-              trajectory.setComment(std::to_string(a) + ", " + std::to_string(c) + ", " + std::to_string(b) + ", " + std::to_string(d));
-
-              // add frame at target pose
-              rviz_marker_tools::appendFrame(trajectory.markers(), target_pose_msg, 0.1, "grasp frame");
-
-              spawn(std::move(state), std::move(trajectory));
             }
           }
         }
@@ -210,8 +193,7 @@ void GraspGenerator::compute()
         printf("generateGrasps: Side %i of box too big\n", a);
       }
     }
-  } else if (object.primitives[0].type ==
-             object.primitives[0].SPHERE) { // TODO sphere
+  } else if (object.primitives[0].type == object.primitives[0].SPHERE) {
     if (2.0 * object.primitives[0].dimensions[0] <= MAX_GRIPPER_OPEN) {
       // regular dodecahedron (20 vertices)
       const float phi = 1.618; // golden ratio
@@ -224,23 +206,20 @@ void GraspGenerator::compute()
           {-1 / phi, 0, -phi}, {phi, 1 / phi, 0},  {-phi, 1 / phi, 0},
           {phi, -1 / phi, 0},  {-phi, -1 / phi, 0}};
       for (int a = 0; a < 20; a++) {
-        float x, y, z;
-        Eigen::Quaternionf total;
-        total.normalize();
         Eigen::Vector3f vec(vertices[a][0], vertices[a][1], vertices[a][2]);
-        vec *= -(DIST_TO_OBJ + object.primitives[0].dimensions[1]) / sqrt(3.0);
-        Eigen::Vector3f vec2 = -vec;
+        std::cout << vec.x() << " " << vec.y() << " " << vec.z() << std::endl;
+        vec *= -object.primitives[0].dimensions[0] / sqrt(3.0);
+        std::cout << vec.x() << " " << vec.y() << " " << vec.z() << std::endl;
+        Eigen::Quaternionf total;
         total.setFromTwoVectors(Eigen::Vector3f(-1.0, 0.0, 0.0), vec);
-        x = object.primitive_poses[0].position.x + vec.x();
-        y = object.primitive_poses[0].position.y + vec.y();
-        z = object.primitive_poses[0].position.z + vec.z();
+        std::cout << total.x() << " " << total.y() << " " << total.z() << " " << total.w() << std::endl;
         target_pose_msg.pose.orientation.x = total.x();
         target_pose_msg.pose.orientation.y = total.y();
         target_pose_msg.pose.orientation.z = total.z();
         target_pose_msg.pose.orientation.w = total.w();
-        target_pose_msg.pose.position.x = x;
-        target_pose_msg.pose.position.y = y;
-        target_pose_msg.pose.position.z = z;
+        target_pose_msg.pose.position.x = vec.x();
+        target_pose_msg.pose.position.y = vec.y();
+        target_pose_msg.pose.position.z = vec.z();
 
         InterfaceState state(scene);
         state.properties().set("target_pose", target_pose_msg);
