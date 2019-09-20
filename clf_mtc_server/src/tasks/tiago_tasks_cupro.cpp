@@ -121,7 +121,7 @@ Task TiagoTasksCupro::createPickTask(std::string id)
   // carry
   auto home = std::make_unique<stages::MoveTo>("to home", pipeline);
   home->setProperty("group", "arm_torso");
-  home->setProperty("goal", "home");
+  home->setProperty("goal", "home_carry");
   t.add(std::move(home));
 
   return t;
