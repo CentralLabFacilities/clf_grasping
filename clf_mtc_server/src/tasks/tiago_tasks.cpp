@@ -1,3 +1,4 @@
+// TODO merge this file with tiago_tasks_cupro.cpp?
 #include "clf_mtc_server/tasks/tiago_tasks.h"
 
 #include "clf_mtc_server/stages/generate_all_grasp_pose.h"
@@ -13,7 +14,11 @@
 #include <moveit/task_constructor/stages/simple_grasp.h>
 #include <moveit/task_constructor/stages/pick.h>
 #include <moveit/task_constructor/stages/connect.h>
+#include <moveit/task_constructor/stages/fix_collision_objects.h>
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
+#include <moveit/task_constructor/stages/modify_planning_scene.h>
+
+#include <moveit/planning_scene/planning_scene.h>
 
 using namespace moveit::task_constructor;
 
@@ -32,6 +37,14 @@ Task TiagoTasks::createPickTask(std::string id)
   auto initial = std::make_unique<stages::CurrentState>("current state");
   initial_stage = initial.get();
   t.add(std::move(initial));
+
+  auto fix = new stages::FixCollisionObjects();
+  fix->setMaxPenetration(0.00);
+  geometry_msgs::Vector3 correction;
+  correction.z = 1;
+  fix->setDirection(correction);
+  t.add(Stage::pointer(fix));
+  initial_stage = fix;
 
   // planner used for connect
   auto pipeline = std::make_shared<solvers::PipelinePlanner>();
@@ -69,6 +82,40 @@ Task TiagoTasks::createPickTask(std::string id)
   lift.header.frame_id = "base_link";
   lift.twist.linear.z = 1.0;
   pick->setLiftMotion(lift, 0.03, 0.05);
+
+  {
+    auto allow_touch = new stages::ModifyPlanningScene("allow object collision");
+    PropertyMap& p = allow_touch->properties();
+    p.declare<std::string>("table");
+    p.declare<std::string>("object");
+    p.set("table", "table");
+    p.set("object", id);
+
+    allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
+      collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
+      const std::string& table = p.get<std::string>("table");
+      const std::string& object = p.get<std::string>("object");
+      acm.setEntry(object, table, true);
+    });
+    pick->insert(Stage::pointer(allow_touch), -2);
+  }
+
+  {
+    auto disallow_touch = new stages::ModifyPlanningScene("disallow object collision");
+    PropertyMap& p = disallow_touch->properties();
+    p.declare<std::string>("table");
+    p.declare<std::string>("object");
+    p.set("table", "table");
+    p.set("object", id);
+
+    disallow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
+      collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
+      const std::string& table = p.get<std::string>("table");
+      const std::string& object = p.get<std::string>("object");
+      acm.setEntry(object, table, false);
+    });
+    pick->insert(Stage::pointer(disallow_touch), -1);
+  }
 
   t.add(std::move(pick));
 
