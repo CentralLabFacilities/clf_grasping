@@ -9,6 +9,7 @@
 #include <Eigen/Geometry>
 #include <eigen_conversions/eigen_msg.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 namespace moveit {
 namespace task_constructor {
@@ -190,49 +191,42 @@ void GraspGenerator::compute()
           }
         }
       } else {
-        printf("generateGrasps: Side %i of box too big\n", a);
+        ROS_ERROR("generateGrasps: Side %i of box too big\n", a);
       }
     }
   } else if (object.primitives[0].type == object.primitives[0].SPHERE) {
     if (2.0 * object.primitives[0].dimensions[0] <= MAX_GRIPPER_OPEN) {
       // regular dodecahedron (20 vertices)
-      const float phi = 1.618; // golden ratio
-      float vertices[20][3] = {
-          {1, 1, 1},           {-1, 1, 1},         {1, -1, 1},
-          {-1, -1, 1},         {1, 1, -1},         {-1, 1, -1},
-          {1, -1, -1},         {-1, -1, -1},       {0, phi, 1 / phi},
-          {0, -phi, 1 / phi},  {0, phi, -1 / phi}, {0, -phi, -1 / phi},
-          {1 / phi, 0, phi},   {-1 / phi, 0, phi}, {1 / phi, 0, -phi},
-          {-1 / phi, 0, -phi}, {phi, 1 / phi, 0},  {-phi, 1 / phi, 0},
-          {phi, -1 / phi, 0},  {-phi, -1 / phi, 0}};
-      for (int a = 0; a < 20; a++) {
-        Eigen::Vector3f vec(vertices[a][0], vertices[a][1], vertices[a][2]);
-        std::cout << vec.x() << " " << vec.y() << " " << vec.z() << std::endl;
-        vec *= -object.primitives[0].dimensions[0] / sqrt(3.0);
-        std::cout << vec.x() << " " << vec.y() << " " << vec.z() << std::endl;
-        Eigen::Quaternionf total;
-        total.setFromTwoVectors(Eigen::Vector3f(-1.0, 0.0, 0.0), vec);
-        std::cout << total.x() << " " << total.y() << " " << total.z() << " " << total.w() << std::endl;
-        target_pose_msg.pose.orientation.x = total.x();
-        target_pose_msg.pose.orientation.y = total.y();
-        target_pose_msg.pose.orientation.z = total.z();
-        target_pose_msg.pose.orientation.w = total.w();
-        target_pose_msg.pose.position.x = vec.x();
-        target_pose_msg.pose.position.y = vec.y();
-        target_pose_msg.pose.position.z = vec.z();
+      const double phi = 1.618; // golden ratio
+      const double vertices[20][3] = {
+          { 1.0,  1.0,  1.0},           {-1.0,  1.0,  1.0},         { 1.0, -1.0,  1.0},
+          {-1.0, -1.0,  1.0},         { 1.0,  1.0, -1.0},         {-1.0,  1.0, -1.0},
+          { 1.0, -1.0, -1.0},         {-1.0, -1.0, -1.0},       { 0.0, phi,  1.0 / phi},
+          { 0.0, -phi, 1.0 / phi},  { 0.0, phi, -1.0 / phi}, { 0.0, -phi, -1.0 / phi},
+          { 1.0 / phi, 0.0, phi},   {-1.0 / phi,  0.0, phi}, { 1.0 / phi,  0.0, -phi},
+          {-1.0 / phi, 0.0, -phi}, {phi, 1.0 / phi, 0.0},  {-phi, 1.0 / phi,  0.0},
+          {phi, -1.0 / phi,  0.0},  {-phi, -1.0 / phi,  0.0}};
+      for (uint8_t a = 0; a < 20; a++) {
+        Eigen::Vector3d vec(vertices[a][0] / sqrt(3.0), vertices[a][1] / sqrt(3.0), vertices[a][2] / sqrt(3.0));
+        Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d(-1.0, 0.0, 0.0), vec);
+        vec *= object.primitives[0].dimensions[0];
+        for (uint8_t b = 0; b < 6; b++) {
+          target_pose_msg.pose.orientation = tf2::toMsg(rotation * Eigen::AngleAxisd(b * 1.047197551, Eigen::Vector3d::UnitX()));
+          target_pose_msg.pose.position = tf2::toMsg(vec);
 
-        InterfaceState state(scene);
-        state.properties().set("target_pose", target_pose_msg);
-        props.exposeTo(state.properties(), { "pregrasp", "grasp" });
+          InterfaceState state(scene);
+          state.properties().set("target_pose", target_pose_msg);
+          props.exposeTo(state.properties(), { "pregrasp", "grasp" });
 
-        SubTrajectory trajectory;
-        trajectory.setCost(0.0);
-        trajectory.setComment(std::to_string(a));
+          SubTrajectory trajectory;
+          trajectory.setCost(0.0);
+          trajectory.setComment(std::to_string(a));
 
-        // add frame at target pose
-        rviz_marker_tools::appendFrame(trajectory.markers(), target_pose_msg, 0.1, "grasp frame");
+          // add frame at target pose
+          rviz_marker_tools::appendFrame(trajectory.markers(), target_pose_msg, 0.1, "grasp frame");
 
-        spawn(std::move(state), std::move(trajectory));
+          spawn(std::move(state), std::move(trajectory));
+        }
       }
     } else {
       ROS_ERROR("generateGrasps: Sphere too big");
@@ -240,7 +234,7 @@ void GraspGenerator::compute()
   } else {
     ROS_ERROR("generateGrasps cannot handle object type");
   }
-}
-}
-}
-}
+} // void GraspGenerator::compute()
+} // stages
+} // task_constructor
+} // namespace moveit
