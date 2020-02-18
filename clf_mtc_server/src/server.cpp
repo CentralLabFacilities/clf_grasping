@@ -97,7 +97,9 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   if (!task.plan(1))
   {
     ROS_ERROR_STREAM("planning failed");
-    pickAs_.setAborted();
+    pickResult_.error_code = -1; // PLANNING_FAILED
+    pickResult_.result.result = pickResult_.result.NO_PLAN_FOUND;
+    pickAs_.setAborted(pickResult_, "planning failed");
     storeTask(task);
     return;
   }
@@ -116,7 +118,9 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   task.execute(*solution);
 
   ROS_INFO_STREAM("Done!");
-  pickAs_.setSucceeded(pickResult_);
+  pickResult_.error_code = 1; // SUCCESS
+  pickResult_.result.result = pickResult_.result.SUCCESS;
+  pickAs_.setSucceeded(pickResult_); // TODO what if task.execute fails?
   storeTask(task);
 }
 
