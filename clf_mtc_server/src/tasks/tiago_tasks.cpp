@@ -76,7 +76,7 @@ Task TiagoTasks::createPickTask(std::string id)
   geometry_msgs::TwistStamped approach;
   approach.header.frame_id = tool_frame;
   approach.twist.linear.x = 1.0;
-  pick->setApproachMotion(approach, 0.05, 0.1);
+  pick->setApproachMotion(approach, 0.05, 0.15);
 
   geometry_msgs::TwistStamped lift;
   lift.header.frame_id = "base_link";
