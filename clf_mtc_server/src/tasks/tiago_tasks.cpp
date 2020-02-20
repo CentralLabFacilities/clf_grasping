@@ -1,4 +1,3 @@
-// TODO merge this file with tiago_tasks_cupro.cpp?
 #include "clf_mtc_server/tasks/tiago_tasks.h"
 
 #include "clf_mtc_server/stages/generate_all_grasp_pose.h"
@@ -22,6 +21,11 @@
 
 using namespace moveit::task_constructor;
 
+TiagoTasks::TiagoTasks(const std::string tool_frame, const std::string carry_pose)
+  : tool_frame_(tool_frame), carry_pose_(carry_pose)
+{
+}
+
 void TiagoTasks::init(ros::NodeHandle& /*unused*/)
 {
 }
@@ -29,7 +33,6 @@ void TiagoTasks::init(ros::NodeHandle& /*unused*/)
 Task TiagoTasks::createPickTask(std::string id)
 {
   Task t("tiago_grasp");
-  std::string tool_frame = "gripper_grasping_frame";
   std::string eef = "gripper";
   std::string arm = "arm_torso";  // arm
 
@@ -66,15 +69,15 @@ Task TiagoTasks::createPickTask(std::string id)
   grasp_generator->setMonitoredStage(initial_stage);
 
   auto grasp = std::make_unique<stages::SimpleGrasp>(std::move(grasp_generator));
-  grasp->setIKFrame(Eigen::Isometry3d::Identity(), tool_frame);
+  grasp->setIKFrame(Eigen::Isometry3d::Identity(), tool_frame_);
   grasp->setProperty("max_ik_solutions", 1u);
 
   auto pick = std::make_unique<stages::Pick>(std::move(grasp));
   pick->setProperty("eef", eef);
   pick->setProperty("object", id);
-  pick->setProperty("eef_frame", tool_frame);
+  pick->setProperty("eef_frame", tool_frame_);
   geometry_msgs::TwistStamped approach;
-  approach.header.frame_id = tool_frame;
+  approach.header.frame_id = tool_frame_;
   approach.twist.linear.x = 1.0;
   pick->setApproachMotion(approach, 0.05, 0.15);
 
@@ -122,7 +125,7 @@ Task TiagoTasks::createPickTask(std::string id)
   // carry
   auto home = std::make_unique<stages::MoveTo>("to home", pipeline);
   home->setProperty("group", "arm_torso");
-  home->setProperty("goal", "home");
+  home->setProperty("goal", carry_pose_);
   t.add(std::move(home));
 
   return t;

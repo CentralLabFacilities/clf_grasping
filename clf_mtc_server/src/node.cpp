@@ -1,5 +1,4 @@
 #include "clf_mtc_server/server.h"
-#include "clf_mtc_server/tasks/tiago_tasks_cupro.h"
 #include "clf_mtc_server/tasks/tiago_tasks.h"
 
 int main(int argc, char** argv)
@@ -13,11 +12,11 @@ int main(int argc, char** argv)
 
   if (robot == "tiago_cupro")
   {
-    Server server(nh, new TiagoTasksCupro());
+    Server server(nh, new TiagoTasks("cupro_grasping_frame", "home_carry"));
   }
   else if (robot == "tiago_schunk")
   {
-    Server server(nh, new TiagoTasks());
+    Server server(nh, new TiagoTasks("gripper_grasping_frame", "home"));
   }
   else
   {

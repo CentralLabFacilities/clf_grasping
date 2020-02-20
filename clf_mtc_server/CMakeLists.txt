@@ -39,7 +39,6 @@ add_executable(clf_mtc_server
 
 		src/tasks/common.cpp
 
-    src/tasks/tiago_tasks_cupro.cpp
     src/tasks/tiago_tasks.cpp
     )
 target_link_libraries(clf_mtc_server ${catkin_LIBRARIES})
