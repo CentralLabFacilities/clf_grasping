@@ -55,9 +55,7 @@ void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
 
 bool Server::clearPlanningScene(ClearPlanningSceneReq& /*req*/, ClearPlanningSceneRes& /*res*/)
 {
-  ps::detachObjects();
-  ps::clear();
-  return true;
+  return (ps::detachObjects() && ps::clear());
 }
 
 void Server::executePlanPick(const clf_grasping_msgs::PlanPickGoalConstPtr& goal)

@@ -30,7 +30,7 @@ std::vector<moveit_msgs::AttachedCollisionObject> getAttachedObjects()
   return attached_objects;
 }
 
-void detachObjects()
+bool detachObjects()
 {
   ros::NodeHandle nh("~");
   ROS_DEBUG_STREAM("Detaching Objects...");
@@ -43,7 +43,11 @@ void detachObjects()
   moveit_msgs::GetPlanningScene srv;
   srv.request.components.components =
       srv.request.components.ROBOT_STATE_ATTACHED_OBJECTS | srv.request.components.WORLD_OBJECT_NAMES;
-  client_get_scene.call(srv);
+  if (!client_get_scene.call(srv))
+  {
+    ROS_ERROR("ps::detachObjects(): Call to /get_planning_scene service failed");
+    return false;
+  }
   auto scene = srv.response.scene;
   // ROS_INFO_STREAM("current scene: " << scene);
 
@@ -67,12 +71,17 @@ void detachObjects()
   moveit_msgs::ApplyPlanningScene req;
   req.request.scene = update;
   // ROS_INFO_STREAM("sending scene: " << update);
-  client_apply_scene.call(req);
+  if (!client_apply_scene.call(req))
+  {
+    ROS_ERROR("ps::detachObjects(): Call to /apply_planning_scene service failed");
+    return false;
+  }
 
   ros::spinOnce();
+  return true;
 }
 
-void clear()
+bool clear()
 {
   // moveit::planning_interface::PlanningSceneInterface psi;
 
@@ -99,7 +108,11 @@ void clear()
   moveit_msgs::GetPlanningScene srv;
   srv.request.components.components =
       srv.request.components.ROBOT_STATE_ATTACHED_OBJECTS | srv.request.components.WORLD_OBJECT_NAMES;
-  client_get_scene.call(srv);
+  if (!client_get_scene.call(srv))
+  {
+    ROS_ERROR("ps::clear(): Call to /get_planning_scene service failed");
+    return false;
+  }
   auto scene = srv.response.scene;
   // ROS_INFO_STREAM("current scene: " << scene);
   auto objects = scene.world.collision_objects;
@@ -120,6 +133,11 @@ void clear()
   moveit_msgs::ApplyPlanningScene req;
   req.request.scene = update;
   // ROS_INFO_STREAM("sending scene: " << update);
-  client_apply_scene.call(req);
+  if (!client_apply_scene.call(req))
+  {
+    ROS_ERROR("ps::clear(): Call to /apply_planning_scene service failed");
+    return false;
+  }
+  return true;
 }
 }  // namespace ps
