@@ -30,7 +30,7 @@ void TiagoTasks::init(ros::NodeHandle& /*unused*/)
 {
 }
 
-Task TiagoTasks::createPickTask(std::string id)
+Task TiagoTasks::createPickTask(std::string id, std::string support_id)
 {
   Task t("tiago_grasp");
   std::string eef = "gripper";
@@ -89,16 +89,16 @@ Task TiagoTasks::createPickTask(std::string id)
   {
     auto allow_touch = new stages::ModifyPlanningScene("allow object collision");
     PropertyMap& p = allow_touch->properties();
-    p.declare<std::string>("table");
+    p.declare<std::string>("support");
     p.declare<std::string>("object");
-    p.set("table", "table");
+    p.set("support", support_id);
     p.set("object", id);
 
     allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
       collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
-      const std::string& table = p.get<std::string>("table");
+      const std::string& support = p.get<std::string>("support");
       const std::string& object = p.get<std::string>("object");
-      acm.setEntry(object, table, true);
+      acm.setEntry(object, support, true);
     });
     pick->insert(Stage::pointer(allow_touch), -2);
   }
@@ -106,16 +106,16 @@ Task TiagoTasks::createPickTask(std::string id)
   {
     auto disallow_touch = new stages::ModifyPlanningScene("disallow object collision");
     PropertyMap& p = disallow_touch->properties();
-    p.declare<std::string>("table");
+    p.declare<std::string>("support");
     p.declare<std::string>("object");
-    p.set("table", "table");
+    p.set("support", support_id);
     p.set("object", id);
 
     disallow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
       collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
-      const std::string& table = p.get<std::string>("table");
+      const std::string& support = p.get<std::string>("support");
       const std::string& object = p.get<std::string>("object");
-      acm.setEntry(object, table, false);
+      acm.setEntry(object, support, false);
     });
     pick->insert(Stage::pointer(disallow_touch), -1);
   }

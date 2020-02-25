@@ -63,7 +63,7 @@ void Server::executePlanPick(const clf_grasping_msgs::PlanPickGoalConstPtr& goal
   clf_grasping_msgs::PlanPickFeedback feedback;
   clf_grasping_msgs::PlanPickResult result;
 
-  auto task = tc_->createPickTask(goal->id);
+  auto task = tc_->createPickTask(goal->id, "table");
   ROS_INFO_STREAM("Planning to pick: " << goal->id);
 
   result.solutions.clear();
@@ -89,7 +89,7 @@ void Server::executePlanPick(const clf_grasping_msgs::PlanPickGoalConstPtr& goal
 void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
 {
   // PickFeedback_;
-  auto task = tc_->createPickTask(goal->id);
+  auto task = tc_->createPickTask(goal->id, "table");
   ROS_INFO_STREAM("Planning to pick: " << goal->id);
 
   if (!task.plan(1))
