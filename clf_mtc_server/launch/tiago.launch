@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  
-  <node pkg="clf_mtc_server" type="clf_mtc_server" name="tiago_mtc" args="" output="screen" >
+  <arg name="robot" default="tiago_cupro" />
+  <node pkg="clf_mtc_server" type="clf_mtc_server" name="clf_mtc_server" args="" output="screen">
+    <param name="robot" type="string" value="$(arg robot)"/>
   </node>
-
 </launch>
