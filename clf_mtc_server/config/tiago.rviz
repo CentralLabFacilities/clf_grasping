@@ -712,7 +712,7 @@ Visualization Manager:
         Voxel Rendering: Occupied Voxels
       Show Trail: false
       State Display Time: 0.05 s
-      Task Solution Topic: /tiago_mtc/tiago_grasp/solution
+      Task Solution Topic: /clf_mtc_server/tiago_grasp/solution
       Tasks:
         tiago_grasp: 1
       Trail Step Size: 1
