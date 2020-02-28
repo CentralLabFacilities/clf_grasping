@@ -1,6 +1,7 @@
 #include "clf_mtc_server/server.h"
 
 #include "clf_mtc_server/planning_scene.h"
+#include <moveit_msgs/MoveItErrorCodes.h>
 
 Server::Server(ros::NodeHandle nh, RobotTasks* tc)
   : nh_(nh)
@@ -113,12 +114,24 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   }
 
   ROS_INFO_STREAM("Execute Solution...");
-  task.execute(*solution);
+  if(std::is_same<decltype(task.execute(*solution)), void>::value) { // in older mtc versions, Task::execute returns void
+    task.execute(*solution);
+    ROS_INFO("Task::execute has return type void, so cannot check result. Assuming success.");
+    pickResult_.error_code = 1; // SUCCESS
+  } else {
+    moveit_msgs::MoveItErrorCodes execute_result = task.execute(*solution);
+    ROS_INFO("Task::execute returned %i", execute_result.val);
+    pickResult_.error_code = execute_result.val;
+  }
 
   ROS_INFO_STREAM("Done!");
-  pickResult_.error_code = 1; // SUCCESS
-  pickResult_.result.result = pickResult_.result.SUCCESS;
-  pickAs_.setSucceeded(pickResult_); // TODO what if task.execute fails?
+  if(pickResult_.error_code == 1) { // SUCCESS
+    pickResult_.result.result = pickResult_.result.SUCCESS;
+    pickAs_.setSucceeded(pickResult_, "success");
+  } else {
+    pickResult_.result.result = pickResult_.result.EXECUTION_FAILED;
+    pickAs_.setAborted(pickResult_, "execution failed");
+  }
   storeTask(task);
 }
 
