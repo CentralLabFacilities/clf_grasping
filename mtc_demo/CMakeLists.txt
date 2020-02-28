@@ -29,7 +29,7 @@ include_directories(
   include
 )
 
-add_executable(tiago src/tiago.cpp)
+add_executable(tiago src/tiago.cpp src/stages/grasp_generator.hpp src/tasks/clf_mtc_server_tiago.hpp)
 target_link_libraries(tiago ${catkin_LIBRARIES})
 
 install(PROGRAMS

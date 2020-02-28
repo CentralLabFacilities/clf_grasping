@@ -31,6 +31,8 @@
 
 #include <cstdlib>
 
+#include "tasks/clf_mtc_server_tiago.hpp"
+
 using namespace moveit::task_constructor;
 
 typedef Task (*TaskCreator)();
@@ -617,11 +619,6 @@ Task createCarry()
   Task t("task");
   t.loadRobotModel();
 
-  std::string tool_frame = "cupro_grasping_frame";
-  std::string eef = "gripper";
-  std::string object = "object";
-  std::string arm = "arm_torso";  // arm
-
   // don't spill liquid
   moveit_msgs::Constraints upright_constraint;
   upright_constraint.name = "cupro_grasping_frame:upright";
@@ -784,10 +781,6 @@ Task createPickNoLinear()
 {
   Task t("task");
 
-  std::string tool_frame = "cupro_grasping_frame";
-  std::string eef = "gripper";
-  std::string arm = "arm_torso";  // arm
-
   Stage* initial_stage = nullptr;
   auto initial = std::make_unique<stages::CurrentState>("current state");
   initial_stage = initial.get();
@@ -863,7 +856,7 @@ int main(int argc, char** argv)
   clearPlanningScene();
   spawnObject(nh);
 
-  std::map<std::string, TaskCreator> tasks;
+  std::map<std::string, std::function<Task()>> tasks;
 
   tasks["pick"] = &createPick;
   tasks["place"] = &createPlace;
@@ -877,35 +870,12 @@ int main(int argc, char** argv)
 
   tasks["start"] = &createGotoStart;
 
+  auto tiago_mtc = new TiagoTasks("cupro_grasping_frame", "home_carry");
+  std::function<Task()> f = std::bind(&TiagoTasks::createPickTask, tiago_mtc, "object", "table");
+
+  tasks["clf_mtc"] = f;
+
   int maxplan = 1;
-
-  if (argc == 2)
-  {
-    auto name = argv[1];
-    auto search = tasks.find(name);
-    if (search != tasks.end())
-    {
-      std::cout << "Found " << search->first << ", "
-                << ((search->second != nullptr) ? "task created" : "but could not create task") << std::endl;
-    }
-    else
-    {
-      std::cout << name << "Not found\n";
-      return 1;
-    }
-
-    Task task = (search->second)();
-    std::cout << std::endl << "Planning Task... " << std::endl;
-    task.enableIntrospection();
-    task.plan();
-    auto it = task.solutions().begin();
-    std::string nix;
-    std::getline(std::cin, nix);
-    std::advance(it, 0);
-    auto solution = *it;
-    // std::cout << "Execute..." << std::endl;
-    // task.execute(*solution);
-  }
 
   while (true)
   {
@@ -922,6 +892,7 @@ int main(int argc, char** argv)
 
     if (name == "q")
     {
+      spinner.stop();
       return 0;
     }
 
@@ -960,7 +931,7 @@ int main(int argc, char** argv)
     else
     {
       std::cout << "Not found\n";
-      return 1;
+      continue;
     }
 
     Task t = (search->second)();
