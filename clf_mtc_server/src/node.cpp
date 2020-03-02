@@ -12,10 +12,12 @@ int main(int argc, char** argv)
 
   if (robot == "tiago_cupro")
   {
+    ROS_INFO("robot is tiago_cupro");
     Server server(nh, new TiagoTasks("cupro_grasping_frame", "home_carry"));
   }
   else if (robot == "tiago_schunk")
   {
+    ROS_INFO("robot is tiago_schunk");
     Server server(nh, new TiagoTasks("gripper_grasping_frame", "home"));
   }
   else

@@ -32,6 +32,7 @@ void TiagoTasks::init(ros::NodeHandle& /*unused*/)
 
 Task TiagoTasks::createPickTask(std::string id, std::string support_id)
 {
+  ROS_INFO("TiagoTasks::createPickTask(id=%s, support_id=%s) called", id.c_str(), support_id.c_str());
   Task t("tiago_grasp");
   std::string eef = "gripper";
   std::string arm = "arm_torso";  // arm

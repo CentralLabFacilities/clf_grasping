@@ -47,6 +47,7 @@ Server::Server(ros::NodeHandle nh, RobotTasks* tc)
 void Server::storeTask(moveit::task_constructor::Task& t)
 {
   tasks_.push_back(std::move(t));
+  ROS_INFO("tasks_ now contains %lu tasks", tasks_.size());
 }
 
 void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
@@ -56,6 +57,7 @@ void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
 
 bool Server::clearPlanningScene(ClearPlanningSceneReq& /*req*/, ClearPlanningSceneRes& /*res*/)
 {
+  ROS_INFO("Server::clearPlanningScene service called");
   return (ps::detachObjects() && ps::clear());
 }
 

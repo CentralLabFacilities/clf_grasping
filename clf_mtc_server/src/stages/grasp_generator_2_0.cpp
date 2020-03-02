@@ -61,6 +61,7 @@ void GraspGenerator::init(const moveit::core::RobotModelConstPtr& robot_model)
 
 void GraspGenerator::onNewSolution(const SolutionBase& s)
 {
+  ROS_DEBUG("GraspGenerator::onNewSolution() called");
   planning_scene::PlanningSceneConstPtr scene = s.end()->scene();
 
   const auto& props = properties();
@@ -68,6 +69,7 @@ void GraspGenerator::onNewSolution(const SolutionBase& s)
   if (!scene->knowsFrameTransform(object))
   {
     const std::string msg = "object '" + object + "' not in scene";
+    ROS_WARN_STREAM_NAMED("GraspGenerator", msg);
     if (storeFailures())
     {
       InterfaceState state(scene);
@@ -76,8 +78,6 @@ void GraspGenerator::onNewSolution(const SolutionBase& s)
       solution.setComment(msg);
       spawn(std::move(state), std::move(solution));
     }
-    else
-      ROS_WARN_STREAM_NAMED("GraspGenerator", msg);
     return;
   }
 
@@ -246,6 +246,7 @@ std::multimap<float, geometry_msgs::PoseStamped> computeSphereGrasps(const movei
 
 void GraspGenerator::compute()
 {
+  ROS_DEBUG("GraspGenerator::compute() called");
   if (upstream_solutions_.empty())
     return;
   planning_scene::PlanningScenePtr scene = upstream_solutions_.pop()->end()->scene()->diff();
