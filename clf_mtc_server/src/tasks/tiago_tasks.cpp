@@ -88,7 +88,7 @@ Task TiagoTasks::createPickTask(std::string id, std::string support_id)
   pick->setLiftMotion(lift, 0.03, 0.05);
 
   {
-    auto allow_touch = new stages::ModifyPlanningScene("allow object collision");
+    auto allow_touch = new stages::ModifyPlanningScene("allow object support collision");
     PropertyMap& p = allow_touch->properties();
     p.declare<std::string>("support");
     p.declare<std::string>("object");
@@ -101,11 +101,11 @@ Task TiagoTasks::createPickTask(std::string id, std::string support_id)
       const std::string& object = p.get<std::string>("object");
       acm.setEntry(object, support, true);
     });
-    pick->insert(Stage::pointer(allow_touch), -2);
+    pick->insert(Stage::pointer(allow_touch), -2); // insert before the last element
   }
 
   {
-    auto disallow_touch = new stages::ModifyPlanningScene("disallow object collision");
+    auto disallow_touch = new stages::ModifyPlanningScene("disallow object support collision");
     PropertyMap& p = disallow_touch->properties();
     p.declare<std::string>("support");
     p.declare<std::string>("object");
@@ -118,14 +118,14 @@ Task TiagoTasks::createPickTask(std::string id, std::string support_id)
       const std::string& object = p.get<std::string>("object");
       acm.setEntry(object, support, false);
     });
-    pick->insert(Stage::pointer(disallow_touch), -1);
+    pick->insert(Stage::pointer(disallow_touch), -1); // insert at the end (after the last element)
   }
 
   t.add(std::move(pick));
 
   // carry
   auto home = std::make_unique<stages::MoveTo>("to home", pipeline);
-  home->setProperty("group", "arm_torso");
+  home->setProperty("group", arm);
   home->setProperty("goal", carry_pose_);
   t.add(std::move(home));
 
