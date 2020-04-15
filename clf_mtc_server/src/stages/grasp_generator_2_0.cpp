@@ -116,7 +116,7 @@ std::multimap<float, geometry_msgs::PoseStamped> computeCylinderGrasps(const mov
 
 std::multimap<float, geometry_msgs::PoseStamped> computeBoxGrasps(const moveit_msgs::CollisionObject& object, const float MAX_GRIPPER_OPEN) {
   ROS_INFO("Computing box grasps");
-  const float DIST_TO_OBJ = 0.0;//0.22;
+  //const float DIST_TO_OBJ = 0.0;//0.22;
   std::multimap<float, geometry_msgs::PoseStamped> grasps;
   for (int a = 0; a < 3; a++) { // Three dimensions
     if (object.primitives[0].dimensions[a] <= MAX_GRIPPER_OPEN) {
@@ -278,7 +278,7 @@ void GraspGenerator::compute()
     return;
   }
   for(const auto& item : poses_and_costs) {
-    ROS_INFO("Adding target pose with costs %f", item.first);
+    ROS_DEBUG("Adding target pose with costs %f", item.first);
     InterfaceState state(scene);
     state.properties().set("target_pose", item.second);
     props.exposeTo(state.properties(), { "pregrasp", "grasp" });

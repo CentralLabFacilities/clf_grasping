@@ -22,7 +22,7 @@ int main(int argc, char** argv)
   }
   else
   {
-    ROS_ERROR_STREAM("unkown robot type " << robot);
+    ROS_ERROR_STREAM("unknown robot type " << robot << ", possible are tiago_cupro, tiago_schunk");
   }
 
   ros::shutdown();
