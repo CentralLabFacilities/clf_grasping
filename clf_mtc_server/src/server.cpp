@@ -55,10 +55,15 @@ void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
   stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Status");
 }
 
-bool Server::clearPlanningScene(ClearPlanningSceneReq& /*req*/, ClearPlanningSceneRes& /*res*/)
+bool Server::clearPlanningScene(ClearPlanningSceneReq& req, ClearPlanningSceneRes& /*res*/)
 {
   ROS_INFO("Server::clearPlanningScene service called");
-  return (ps::detachObjects() && ps::clear());
+  if(req.data) {
+    ROS_INFO("request.data is true, so not deleting attached objects, only unattached objects");
+  } else {
+    ROS_INFO("request.data is false, so also deleting attached objects");
+  }
+  return ((req.data || ps::detachObjects()) && ps::clear());
 }
 
 void Server::executePlanPick(const clf_grasping_msgs::PlanPickGoalConstPtr& goal)

@@ -4,7 +4,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 
-#include <std_srvs/Empty.h>
+#include <std_srvs/SetBool.h>
 #include <clf_grasping_msgs/PickAction.h>
 #include <clf_grasping_msgs/PlaceAction.h>
 #include <clf_grasping_msgs/PlanPickAction.h>
@@ -16,8 +16,8 @@
 
 #include "clf_mtc_server/robot_tasks.h"
 
-typedef std_srvs::Empty::Request ClearPlanningSceneReq;
-typedef std_srvs::Empty::Response ClearPlanningSceneRes;
+typedef std_srvs::SetBool::Request ClearPlanningSceneReq;
+typedef std_srvs::SetBool::Response ClearPlanningSceneRes;
 
 class Server
 {
