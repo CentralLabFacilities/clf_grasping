@@ -1,11 +1,12 @@
 #include "clf_mtc_server/planning_scene.h"
 
-#include <ros/ros.h>
+#include "ros/console.h"                            // for LogLocation, ROS_...
+#include "ros/init.h"                               // for spinOnce
+#include "ros/node_handle.h"                        // for NodeHandle
+#include "ros/service_client.h"                     // for ServiceClient
 
 #include <moveit_msgs/GetPlanningScene.h>
 #include <moveit_msgs/ApplyPlanningScene.h>
-
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
 
 namespace ps
 {

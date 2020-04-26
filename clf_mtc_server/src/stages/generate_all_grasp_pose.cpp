@@ -1,7 +1,6 @@
 #include <clf_mtc_server/stages/generate_all_grasp_pose.h>
 
 #include <moveit/task_constructor/storage.h>
-#include <moveit/task_constructor/marker_tools.h>
 #include <rviz_marker_tools/marker_creation.h>
 
 #include <moveit/planning_scene/planning_scene.h>

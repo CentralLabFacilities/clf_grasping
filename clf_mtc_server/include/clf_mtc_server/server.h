@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ros/ros.h>
+#include <ros/node_handle.h> // for NodeHandle
+#include <ros/service_server.h> // for ServiceServer
 #include <actionlib/server/simple_action_server.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 
@@ -9,10 +10,6 @@
 #include <clf_grasping_msgs/PlaceAction.h>
 #include <clf_grasping_msgs/PlanPickAction.h>
 #include <clf_grasping_msgs/PlanPlaceAction.h>
-
-#include <moveit_msgs/CollisionObject.h>
-#include <shape_msgs/SolidPrimitive.h>
-#include <moveit_msgs/PlanningScene.h>
 
 #include "clf_mtc_server/robot_tasks.h"
 

@@ -1,12 +1,11 @@
 #include <clf_mtc_server/stages/grasp_generator_2_0.h>
 
 #include <moveit/task_constructor/storage.h>
-#include <moveit/task_constructor/marker_tools.h>
 #include <rviz_marker_tools/marker_creation.h>
 
 #include <moveit/planning_scene/planning_scene.h>
 
-#include <Eigen/Geometry>
+//#include <Eigen/Geometry>
 #include <eigen_conversions/eigen_msg.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_eigen/tf2_eigen.h>

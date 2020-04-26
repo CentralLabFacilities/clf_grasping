@@ -1,15 +1,17 @@
 #include "clf_mtc_server/tasks/tiago_tasks.h"
 
-#include "clf_mtc_server/stages/generate_all_grasp_pose.h"
+//#include "clf_mtc_server/stages/generate_all_grasp_pose.h"
 #include "clf_mtc_server/stages/grasp_generator_2_0.h"
 
-#include <ros/ros.h>
+#include <ros/console.h>
+namespace ros { class NodeHandle; }
 
 #include <moveit/task_constructor/task.h>
 
 #include <moveit/task_constructor/stages/current_state.h>
 #include <moveit/task_constructor/stages/move_to.h>
-#include <moveit/task_constructor/stages/generate_grasp_pose.h>
+//#include <moveit/task_constructor/stages/generate_grasp_pose.h>
+#include <moveit/task_constructor/stages/generate_place_pose.h>
 #include <moveit/task_constructor/stages/simple_grasp.h>
 #include <moveit/task_constructor/stages/pick.h>
 #include <moveit/task_constructor/stages/connect.h>
