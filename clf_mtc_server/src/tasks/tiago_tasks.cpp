@@ -32,7 +32,7 @@ void TiagoTasks::init(ros::NodeHandle& /*unused*/)
 {
 }
 
-Task TiagoTasks::createPickTask(std::string id, std::string support_id)
+Task TiagoTasks::createPickTask(const std::string& id, const std::string& support_id)
 {
   ROS_INFO("TiagoTasks::createPickTask(id=%s, support_id=%s) called", id.c_str(), support_id.c_str());
   Task t("tiago_grasp");
@@ -185,9 +185,133 @@ Task TiagoTasks::createPickTask(std::string id, std::string support_id)
   return t;
 }
 
-moveit::task_constructor::Task TiagoTasks::createPlaceTask(std::string /*surface*/,
-                                                           geometry_msgs::PoseStamped /*unused*/)
+moveit::task_constructor::Task TiagoTasks::createPlaceTask(const std::string& surface,
+                                                           const std::string& object_id,
+                                                           const geometry_msgs::PoseStamped& place_pose)
 {
+  ROS_INFO("TiagoTasks::createPlaceTask() called");
   Task t("tiago_place");
+  std::string eef = "gripper";
+  std::string arm = "arm_torso";  // arm
+
+  auto initial = std::make_unique<stages::CurrentState>("current state");
+  Stage* initial_stage = initial.get();
+  t.add(std::move(initial));
+
+  /*auto fix = new stages::FixCollisionObjects();
+  fix->setMaxPenetration(0.00);
+  geometry_msgs::Vector3 correction;
+  correction.z = 1;
+  fix->setDirection(correction);
+  t.add(Stage::pointer(fix));
+  initial_stage = fix;*/
+
+  // planner used for connect
+  auto pipeline = std::make_shared<solvers::PipelinePlanner>();
+  pipeline->setPlannerId("RRTConnect");
+  pipeline->setProperty("max_ik_solutions", 1u);
+
+  // connect to pick
+  stages::Connect::GroupPlannerVector planners = {{ arm, pipeline } }; // { eef, pipeline }, 
+  auto connect = std::make_unique<stages::Connect>("connect", planners);
+  connect->properties().configureInitFrom(Stage::PARENT);
+  t.add(std::move(connect));
+
+  // grasp generator
+  auto place_generator = std::make_unique<stages::GeneratePlacePose>("generate place pose");
+  //place_generator->setAngleDelta(.2);
+  place_generator->setPose(place_pose);
+  //place_generator->setPreGraspPose("open");
+  place_generator->properties().set("pregrasp", "open");
+  //place_generator->setGraspPose("closed");
+  place_generator->properties().set("grasp", "closed");
+  //place_generator->setForwardedProperties({ "pregrasp", "grasp" });
+  place_generator->setMonitoredStage(initial_stage);
+  place_generator->properties().configureInitFrom(Stage::PARENT);
+  std::unique_ptr<stages::SimpleUnGrasp> ungrasp = std::make_unique<stages::SimpleUnGrasp>(std::move(place_generator));
+  ungrasp->setIKFrame(Eigen::Isometry3d::Identity(), tool_frame_);
+  ungrasp->setProperty("max_ik_solutions", 1u);
+  
+  { // TODO why is this necessary?
+    // fixup ungrasp
+    auto allow_touch = new stages::ModifyPlanningScene("allow object collision");
+    PropertyMap& p = allow_touch->properties();
+    p.declare<std::string>("eef");
+    p.declare<std::string>("object");
+    p.set("eef", eef);
+    p.set("object", object_id);
+
+    allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
+      collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
+      const std::string& eef = p.get<std::string>("eef");
+      const std::string& object = p.get<std::string>("object");
+      acm.setEntry(object, scene->getRobotModel()->getEndEffector(eef)->getLinkModelNamesWithCollisionGeometry(), true);
+    });
+    ungrasp->insert(Stage::pointer(allow_touch), -3);
+
+    auto openg = new stages::MoveTo("open gripper - ungrasp", pipeline);
+    openg->setProperty("group", eef);
+    openg->setProperty("goal", "open");
+    ungrasp->insert(Stage::pointer(openg), -3);
+
+    // remove broken open gripper
+    ungrasp->remove(-2);
+  }
+
+  auto place = std::make_unique<stages::Place>(std::move(ungrasp));
+  place->setProperty("eef", eef);
+  place->setProperty("object", object_id);
+  place->setProperty("eef_frame", tool_frame_);
+  geometry_msgs::TwistStamped retract;
+  retract.header.frame_id = tool_frame_;
+  retract.twist.linear.x = -1.0;
+  place->setRetractMotion(retract, 0.05, 0.15);
+
+  geometry_msgs::TwistStamped place_motion;
+  place_motion.header.frame_id = "base_link";
+  place_motion.twist.linear.z = -1.0;
+  place->setPlaceMotion(place_motion, 0.03, 0.05);
+
+  {
+    auto allow_touch = new stages::ModifyPlanningScene("allow object support collision");
+    PropertyMap& p = allow_touch->properties();
+    p.declare<std::string>("support");
+    p.declare<std::string>("object");
+    p.set("support", surface);
+    p.set("object", object_id);
+
+    allow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
+      collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
+      const std::string& support = p.get<std::string>("support");
+      const std::string& object = p.get<std::string>("object");
+      acm.setEntry(object, support, true);
+    });
+    place->insert(Stage::pointer(allow_touch), 0); // insert at beginning
+  }
+
+  /*{
+    auto disallow_touch = new stages::ModifyPlanningScene("disallow object support collision");
+    PropertyMap& p = disallow_touch->properties();
+    p.declare<std::string>("support");
+    p.declare<std::string>("object");
+    p.set("support", support_id);
+    p.set("object", id);
+
+    disallow_touch->setCallback([](const planning_scene::PlanningScenePtr& scene, const PropertyMap& p) {
+      collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
+      const std::string& support = p.get<std::string>("support");
+      const std::string& object = p.get<std::string>("object");
+      acm.setEntry(object, support, false);
+    });
+    place->insert(Stage::pointer(disallow_touch), -1); // insert at the end (after the last element)
+  }*/
+
+  t.add(std::move(place));
+
+  // carry
+  auto home = std::make_unique<stages::MoveTo>("to home", pipeline);
+  home->setProperty("group", arm);
+  home->setProperty("goal", carry_pose_);
+  t.add(std::move(home));
   return t;
 }

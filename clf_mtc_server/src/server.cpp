@@ -147,7 +147,16 @@ void Server::executePlanPlace(const clf_grasping_msgs::PlanPlaceGoalConstPtr& go
   clf_grasping_msgs::PlanPlaceFeedback feedback;
   clf_grasping_msgs::PlanPlaceResult result;
 
-  auto task = tc_->createPlaceTask(goal->surface, goal->place_pose);
+  const std::vector<moveit_msgs::AttachedCollisionObject> attached_objects = ps::getAttachedObjects();
+  ROS_INFO("There are %lu objects attached to the robot", attached_objects.size());
+  std::string object_id;
+  if(attached_objects.size() > 0) {
+    object_id = attached_objects[0].object.id;
+  } else {
+    ROS_ERROR("No objects attached to the robot, what object should be placed?");
+  }
+
+  auto task = tc_->createPlaceTask(goal->surface, object_id, goal->place_pose);
   ROS_INFO_STREAM("Planning to place: ");  // << goal->id);
 
   result.solutions.clear();
@@ -174,13 +183,24 @@ void Server::executePlanPlace(const clf_grasping_msgs::PlanPlaceGoalConstPtr& go
 void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
 {
   // PickFeedback_;
-  auto task = tc_->createPlaceTask(goal->surface, goal->place_pose);
-  ROS_INFO_STREAM("Planning to place: ");  // << goal->id);
+  const std::vector<moveit_msgs::AttachedCollisionObject> attached_objects = ps::getAttachedObjects();
+  ROS_INFO("There are %lu objects attached to the robot", attached_objects.size());
+  std::string object_id;
+  if(attached_objects.size() > 0) {
+    object_id = attached_objects[0].object.id;
+  } else {
+    ROS_ERROR("No objects attached to the robot, what object should be placed?");
+  }
+
+  auto task = tc_->createPlaceTask(goal->surface, object_id, goal->place_pose);
+  ROS_INFO_STREAM("Planning to place: " << object_id);
 
   if (!task.plan(1))
   {
     ROS_ERROR_STREAM("planning failed");
-    placeAs_.setAborted();
+    placeResult_.error_code = -1; // PLANNING_FAILED
+    placeResult_.result.result = placeResult_.result.NO_PLAN_FOUND;
+    placeAs_.setAborted(placeResult_, "planning failed");
     storeTask(task);
     return;
   }
@@ -196,9 +216,23 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
   }
 
   ROS_INFO_STREAM("Execute Solution...");
-  task.execute(*solution);
+  if(std::is_same<decltype(task.execute(*solution)), void>::value) { // in older mtc versions, Task::execute returns void
+    task.execute(*solution);
+    ROS_INFO("Task::execute has return type void, so cannot check result. Assuming success.");
+    placeResult_.error_code = 1; // SUCCESS
+  } else {
+    const moveit_msgs::MoveItErrorCodes execute_result = task.execute(*solution);
+    ROS_INFO("Task::execute returned %i", execute_result.val);
+    placeResult_.error_code = execute_result.val;
+  }
 
   ROS_INFO_STREAM("Done!");
-  placeAs_.setSucceeded(placeResult_);
+  if(placeResult_.error_code == 1) { // SUCCESS
+    placeResult_.result.result = placeResult_.result.SUCCESS;
+    placeAs_.setSucceeded(placeResult_, "success");
+  } else {
+    placeResult_.result.result = placeResult_.result.EXECUTION_FAILED;
+    placeAs_.setAborted(placeResult_, "execution failed");
+  }
   storeTask(task);
 }
