@@ -93,7 +93,7 @@ std::multimap<float, geometry_msgs::PoseStamped> computeCylinderGrasps(const mov
   if (2.0 * object.primitives[0].dimensions[1] <= MAX_GRIPPER_OPEN) { // Is it small enough to grasp?
     for (uint8_t a = 0; a < CYLINDER_CONST1; ++a) {
       for (int b = -1; b < 2; ++b) { // TODO do this in fixed steps instead, e.g. every 2 cm
-        for (bool c = true; c; c=!c) { // gripper 180 deg rotated
+        for (const bool c : {true, false}) { // gripper 180 deg rotated
           geometry_msgs::PoseStamped target_pose_msg;
           target_pose_msg.header.frame_id = object.id;//"base_footprint";
           tf2::Quaternion grasp;
