@@ -18,7 +18,7 @@ int main(int argc, char** argv)
   else if (robot == "tiago_schunk")
   {
     ROS_INFO("robot is tiago_schunk");
-    Server server(nh, new TiagoTasks("gripper_grasping_frame", "home"));
+    Server server(nh, new TiagoTasks("gripper_grasping_frame", "home_carry"));
   }
   else
   {
