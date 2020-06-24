@@ -116,6 +116,7 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
 
   if (pickAs_.isPreemptRequested() || !ros::ok())
   {
+    ROS_INFO("Preempt requested, exiting");
     pickAs_.setPreempted();
     return;
   }
@@ -135,9 +136,11 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   if(pickResult_.error_code == 1) { // SUCCESS
     pickResult_.result.result = pickResult_.result.SUCCESS;
     pickAs_.setSucceeded(pickResult_, "success");
+    ROS_INFO("Action succeeded");
   } else {
     pickResult_.result.result = pickResult_.result.EXECUTION_FAILED;
     pickAs_.setAborted(pickResult_, "execution failed");
+    ROS_INFO("Action did not succeed");
   }
   storeTask(task);
 }
@@ -211,6 +214,7 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
 
   if (placeAs_.isPreemptRequested() || !ros::ok())
   {
+    ROS_INFO("Preempt requested, exiting");
     placeAs_.setPreempted();
     return;
   }
