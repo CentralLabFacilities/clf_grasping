@@ -117,37 +117,39 @@ std::multimap<float, geometry_msgs::PoseStamped> computeBoxGrasps(const moveit_m
   ROS_INFO("Computing box grasps");
   //const float DIST_TO_OBJ = 0.0;//0.22;
   std::multimap<float, geometry_msgs::PoseStamped> grasps;
-  for (int a = 0; a < 3; a++) { // Three dimensions
+  for (int a = 0; a < 3; ++a) { // Three dimensions
+    //ROS_INFO("computeBoxGrasps: a=%i, dimension=%g", a, object.primitives[0].dimensions[a]);
     if (object.primitives[0].dimensions[a] <= MAX_GRIPPER_OPEN) {
-      for (int c = 0; c < 2; c++) { // Each side can have two grasp poses (90 degrees rotated)
+      for (int c = 0; c < 2; ++c) { // Each side can have two grasp poses (90 degrees rotated)
         for (int b = -1; b <= 1; b += 2) { // Two sides in each dimension: front/back, left/right, top/bottom
-          for (int d = -1; d < 2; d++) {
-            for (int e = 0; e < 2; e++) {
+          for (int d = -1; d < 2; ++d) { // translation
+            for (const bool e : {true, false}) { // gripper 180 deg rotated around x-axis
                 geometry_msgs::PoseStamped target_pose_msg;
                 target_pose_msg.header.frame_id = object.id;//"base_footprint";
-                tf2::Quaternion grasp, total;
-                float alpha = 0.0, beta = 0.0;
+                tf2::Quaternion grasp;
+                float alpha, beta;
                 if (a == 0) {
-                  grasp.setEuler(M_PI / 2.0, (e == 0 ? 0.0 : M_PI), (c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0);
+                  grasp.setEuler(M_PI / 2.0, 0.0, (c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0);
                   alpha = object.primitives[0].dimensions[c == 0 ? 2 : 1] / 2.0;
                   beta = object.primitives[0].dimensions[c == 0 ? 1 : 2];
                 } else if (a == 1) {
-                  grasp.setEuler((c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0 + (e == 0 ? 0.0 : M_PI), M_PI / 2.0, 0.0);
+                  grasp.setEuler((c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0, M_PI / 2.0, 0.0);
                   alpha = object.primitives[0].dimensions[c == 0 ? 0 : 2] / 2.0;
                   beta = object.primitives[0].dimensions[c == 0 ? 2 : 0];
                 } else if (a == 2) {
-                  grasp.setEuler((e == 0 ? 0.0 : M_PI), 0.0, (c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0);
+                  grasp.setEuler(0.0, 0.0, (c == 0 && b == 1 ? M_PI : 0.0) + c * b * M_PI / 2.0);
                   alpha = object.primitives[0].dimensions[c == 0 ? 0 : 1] / 2.0;
                   beta = object.primitives[0].dimensions[c == 0 ? 1 : 0];
                 }
                 tf2::Vector3 vec(-alpha, 0.0, beta / 3.0 * d);
+                grasp = grasp * tf2::Quaternion(M_SQRT1_2, 0.0, 0.0, (e ? M_SQRT1_2 : -M_SQRT1_2));
                 grasp.normalize();
                 tf2::Transform trans(grasp);
                 vec = trans * vec;
                 target_pose_msg.pose.orientation = tf2::toMsg(grasp);
                 tf2::toMsg(vec, target_pose_msg.pose.position);
 
-                grasps.insert({0.0f, target_pose_msg});
+                grasps.insert({(std::abs(d)+1.0)*object.primitives[0].dimensions[a]/beta, target_pose_msg}); // Favour grasps in the middle, favour grasps on small sides
             }
           }
         }
@@ -176,11 +178,11 @@ std::multimap<float, geometry_msgs::PoseStamped> computeSphereGrasps(const movei
         { 1.0 / phi, 0.0, phi},   {-1.0 / phi,  0.0, phi}, { 1.0 / phi,  0.0, -phi},
         {-1.0 / phi, 0.0, -phi}, {phi, 1.0 / phi, 0.0},  {-phi, 1.0 / phi,  0.0},
         {phi, -1.0 / phi,  0.0},  {-phi, -1.0 / phi,  0.0}};
-    for (uint8_t a = 0; a < 20; a++) {
+    for (uint8_t a = 0; a < 20; ++a) {
       Eigen::Vector3d vec(vertices[a][0] / sqrt(3.0), vertices[a][1] / sqrt(3.0), vertices[a][2] / sqrt(3.0));
       Eigen::Quaterniond rotation = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d(-1.0, 0.0, 0.0), vec);
       vec *= (DIST_TO_OBJ + object.primitives[0].dimensions[0]);
-      for (uint8_t b = 0; b < 6; b++) {
+      for (uint8_t b = 0; b < 6; ++b) {
         target_pose_msg.pose.orientation = tf2::toMsg(rotation * Eigen::AngleAxisd(b * 1.047197551, Eigen::Vector3d::UnitX()));
         target_pose_msg.pose.position = tf2::toMsg(vec);
 
