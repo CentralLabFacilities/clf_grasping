@@ -7,8 +7,11 @@ int main(int argc, char** argv)
 
   ros::NodeHandle nh("clf_mtc_server");
 
-  std::string robot = "tiago_cupro";
-  nh.getParam("robot", robot);
+  std::string robot;
+  if(!nh.getParam("robot", robot))
+  {
+    ROS_ERROR("Unable to retrieve parameter: robot");
+  }
 
   if (robot == "tiago_cupro")
   {
