@@ -8,34 +8,33 @@ else ()
 endif ()
 
 find_package(catkin REQUIRED COMPONENTS
+	clf_grasping_msgs
+	diagnostic_updater
+	eigen_conversions
 	moveit_ros_planning_interface
 	moveit_task_constructor_core
 	rviz_marker_tools
-	eigen_conversions
-	diagnostic_updater
 	std_srvs
-	clf_grasping_msgs
 )
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mtc_demos
-#  CATKIN_DEPENDS other_catkin_pkg
+  CATKIN_DEPENDS clf_grasping_msgs std_srvs
 #  DEPENDS system_lib
 )
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  include
 )
 
-add_executable(tiago src/tiago.cpp src/stages/grasp_generator.hpp src/tasks/clf_mtc_server_tiago.hpp)
+add_executable(tiago src/stages/grasp_generator.hpp src/tasks/clf_mtc_server_tiago.hpp src/tiago.cpp)
 target_link_libraries(tiago ${catkin_LIBRARIES})
 
 install(PROGRAMS
-        scripts/spawn_scene_cylinder.py
-		scripts/spawn_scene_tea.py
         scripts/clear_scene.py
+        scripts/spawn_scene_cylinder.py
+        scripts/spawn_scene_tea.py
         DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

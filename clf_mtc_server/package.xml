@@ -14,6 +14,7 @@
   <depend>diagnostic_updater</depend>
   <depend>std_srvs</depend>
   <depend>clf_grasping_msgs</depend>
+  <depend>moveit_msgs</depend>
 
   <build_depend>moveit_ros_planning_interface</build_depend>
   <build_depend>moveit_task_constructor_core</build_depend>

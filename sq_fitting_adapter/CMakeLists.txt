@@ -6,19 +6,18 @@ project(sq_fitting_adapter)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   actionlib
-  geometry_msgs
   clf_grasping_msgs
-  vision_msgs
+  geometry_msgs
+  moveit_msgs
   rospy
   sensor_msgs
   sq_fitting_ros
-  moveit_msgs
 )
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES object_fitter
-#  CATKIN_DEPENDS actionlib geometry_msgs clf_grasping_msgs rospy sensor_msgs sq_fitting_ros vision_msgs moveit_msgs
+  CATKIN_DEPENDS actionlib clf_grasping_msgs geometry_msgs moveit_msgs sensor_msgs sq_fitting_ros #rospy
 #  DEPENDS system_lib
 )
 

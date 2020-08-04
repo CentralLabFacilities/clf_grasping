@@ -8,20 +8,20 @@ else ()
 endif ()
 
 find_package(catkin REQUIRED COMPONENTS
+	clf_grasping_msgs
+	diagnostic_updater
+	eigen_conversions
+	moveit_msgs
 	moveit_ros_planning_interface
 	moveit_task_constructor_core
 	rviz_marker_tools
-	eigen_conversions
-	diagnostic_updater
 	std_srvs
-	clf_grasping_msgs
-	moveit_msgs
 )
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mtc_demos
-#  CATKIN_DEPENDS other_catkin_pkg
+  CATKIN_DEPENDS clf_grasping_msgs moveit_msgs std_srvs
 #  DEPENDS system_lib
 )
 
@@ -30,7 +30,7 @@ include_directories(
   include
 )
 
-add_executable(clf_mtc_server 
+add_executable(${PROJECT_NAME}
 		src/stages/generate_all_grasp_pose.cpp
 		src/stages/grasp_generator_2_0.cpp
 
@@ -41,11 +41,11 @@ add_executable(clf_mtc_server
 
     src/tasks/tiago_tasks.cpp
     )
-target_link_libraries(clf_mtc_server ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 
 install(TARGETS
-	clf_mtc_server 
+	${PROJECT_NAME}
     ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
     RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

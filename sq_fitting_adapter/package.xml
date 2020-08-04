@@ -11,7 +11,6 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>vision_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>clf_grasping_msgs</depend>
   <depend>rospy</depend>

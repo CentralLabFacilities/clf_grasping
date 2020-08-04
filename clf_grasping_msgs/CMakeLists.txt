@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(clf_grasping_msgs)
 
-set(MSG_DEPS geometry_msgs actionlib_msgs moveit_task_constructor_msgs sensor_msgs moveit_msgs vision_msgs shape_msgs)
+set(MSG_DEPS actionlib_msgs geometry_msgs moveit_msgs moveit_task_constructor_msgs sensor_msgs shape_msgs vision_msgs)
 
 find_package(catkin REQUIRED COMPONENTS
 	message_generation
@@ -21,8 +21,8 @@ add_service_files(DIRECTORY srv FILES
 
 add_action_files(DIRECTORY action FILES
 	Pick.action
-	PlanPick.action
 	Place.action
+	PlanPick.action
 	PlanPlace.action
 )
 
