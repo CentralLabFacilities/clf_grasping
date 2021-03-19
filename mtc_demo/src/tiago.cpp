@@ -55,6 +55,74 @@ void clearPlanningScene()
   psi.removeCollisionObjects(ids);
 }
 
+void attachObjects(ros::NodeHandle nh, std::string id)
+{
+  ROS_INFO_STREAM("Attaching Objects...");
+
+  ros::ServiceClient client_get_scene = nh.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
+  ros::ServiceClient client_apply_scene = nh.serviceClient<moveit_msgs::ApplyPlanningScene>("/apply_planning_scene");
+  client_apply_scene.waitForExistence();
+  client_get_scene.waitForExistence();
+
+  moveit_msgs::GetPlanningScene srv;
+  srv.request.components.components = srv.request.components.ROBOT_STATE_ATTACHED_OBJECTS |
+                                      srv.request.components.WORLD_OBJECT_NAMES |
+                                      srv.request.components.WORLD_OBJECT_GEOMETRY;
+
+  client_get_scene.call(srv);
+  auto scene = srv.response.scene;
+  // ROS_INFO_STREAM("current scene: " << scene);
+
+  moveit_msgs::PlanningScene update;
+  update.is_diff = 1u;
+  update.robot_state.is_diff = 1u;
+
+  moveit_msgs::AttachedCollisionObject attached_object;
+  attached_object.link_name = "cupro_grasping_frame";
+
+  auto world_objects = scene.world.collision_objects;
+
+  for (auto collision_object : world_objects)
+  {
+    if (collision_object.id == id)
+    {
+      attached_object.object = collision_object;
+      attached_object.object.operation = attached_object.object.ADD;
+      ROS_INFO_STREAM("current object: " << attached_object);
+      attached_object.object.header.frame_id = "cupro_grasping_frame";
+      attached_object.object.primitive_poses[0].position.x = 0;
+      attached_object.object.primitive_poses[0].position.y = 0;
+      attached_object.object.primitive_poses[0].position.z = 0;
+
+      attached_object.touch_links.push_back("cupro_finger_l_1_finger_link");
+      attached_object.touch_links.push_back("cupro_finger_r_1_finger_link");
+      attached_object.touch_links.push_back("cupro_finger_r_2_finger_link");
+      attached_object.touch_links.push_back("cupro_finger_mount_l_platte_link");
+      attached_object.touch_links.push_back("cupro_finger_mount_r_platte_link");
+      attached_object.touch_links.push_back("gripper_left_finger_link");
+      attached_object.touch_links.push_back("gripper_right_finger_link");
+
+      moveit_msgs::CollisionObject remove_object(collision_object);
+      remove_object.operation = remove_object.REMOVE;
+
+      update.robot_state.attached_collision_objects.push_back(attached_object);
+      update.world.collision_objects.push_back(remove_object);
+
+      break;
+    }
+    else
+    {
+      continue;
+    }
+  }
+  moveit_msgs::ApplyPlanningScene req;
+  req.request.scene = update;
+  // ROS_INFO_STREAM("sending scene: " << update);
+  client_apply_scene.call(req);
+
+  ros::spinOnce();
+}
+
 void detachObjects(ros::NodeHandle nh)
 {
   ROS_INFO_STREAM("Detaching Objects...");
@@ -126,6 +194,24 @@ void spawnObject(ros::NodeHandle /*nh*/)
   o.primitives[0].dimensions[1] = 2;
   o.primitives[0].dimensions[2] = 0.535;
   psi.applyCollisionObject(o);
+
+  o.id = "dish";
+  o.header.frame_id = "base_link";
+  o.primitives.resize(1);
+  o.primitives[0].type = o.primitives[0].CYLINDER;
+  o.primitives[0].dimensions.resize(2);
+  const float base_radius = 0.0265, upper_radius = 0.0395, height = 0.09;
+  o.primitives[0].dimensions[0] = height;        // height
+  o.primitives[0].dimensions[1] = upper_radius;  // radius
+  o.primitive_poses.resize(1);
+  o.primitive_poses[0].position.x = 0.19 + height / 2.0;
+  o.primitive_poses[0].position.z = 0.6;
+  o.primitive_poses[0].position.y = 0.3;
+  o.primitive_poses[0].orientation.x = 0.0;
+  o.primitive_poses[0].orientation.y = 0.7071;
+  o.primitive_poses[0].orientation.z = 0.0;
+  o.primitive_poses[0].orientation.w = 0.7071;
+  psi.applyCollisionObject(o);
 }
 
 // ***********************************
@@ -183,11 +269,18 @@ ContainerBase* addPick(ContainerBase& container, Stage* initial, const std::stri
   // grasp_generator->setProperty("config", grasp_config);
   // grasp_generator->setMonitoredStage(initial);
 
-  auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
-  grasp_generator->setAngleDelta(.2);
+  auto grasp_generator = std::make_unique<stages::GraspGenerator>("custom grasp generator");
+  // grasp_generator->setAngleDelta(.2);
+  grasp_generator->setProperty("assume_cylinder", true);
   grasp_generator->setPreGraspPose("open");
   grasp_generator->setGraspPose("closed");
   grasp_generator->setMonitoredStage(initial);
+
+  // auto grasp_generator = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
+  // grasp_generator->setAngleDelta(.2);
+  // grasp_generator->setPreGraspPose("open");
+  // grasp_generator->setGraspPose("closed");
+  // grasp_generator->setMonitoredStage(initial);
 
   auto grasp = std::make_unique<stages::SimpleGrasp>(std::move(grasp_generator));
   grasp->setIKFrame(Eigen::Isometry3d::Identity(), tool_frame);
@@ -201,7 +294,7 @@ ContainerBase* addPick(ContainerBase& container, Stage* initial, const std::stri
   geometry_msgs::TwistStamped approach;
   approach.header.frame_id = tool_frame;
   approach.twist.linear.x = 1.0;
-  pick->setApproachMotion(approach, 0.05, 0.1);
+  pick->setApproachMotion(approach, 0.02, 0.1);
 
   geometry_msgs::TwistStamped lift;
   lift.header.frame_id = "base_link";
@@ -880,7 +973,7 @@ int main(int argc, char** argv)
   while (true)
   {
     std::cout << std::endl << "Tasks: " << std::endl;
-    std::cout << " detach; clear; spawn; reset q(quit)" << std::endl << " ";
+    std::cout << " detach; attach[d]; clear; spawn; reset q(quit)" << std::endl << " ";
     for (auto& kv : tasks)
     {
       std::cout << kv.first << "; ";
@@ -907,6 +1000,18 @@ int main(int argc, char** argv)
     if (name == "detach")
     {
       detachObjects(nh);
+      continue;
+    }
+
+    if (name == "attach")
+    {
+      attachObjects(nh, "object");
+      continue;
+    }
+
+    if (name == "attachd")
+    {
+      attachObjects(nh, "dish");
       continue;
     }
 

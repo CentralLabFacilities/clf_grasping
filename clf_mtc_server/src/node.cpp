@@ -8,7 +8,7 @@ int main(int argc, char** argv)
   ros::NodeHandle nh("clf_mtc_server");
 
   std::string robot;
-  if(!nh.getParam("robot", robot))
+  if (!nh.getParam("robot", robot))
   {
     ROS_ERROR("Unable to retrieve parameter: robot");
   }

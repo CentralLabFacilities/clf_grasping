@@ -2,10 +2,12 @@
 
 #include <moveit/task_constructor/stages/generate_pose.h>
 
-namespace moveit {
-namespace task_constructor {
-namespace stages {
-
+namespace moveit
+{
+namespace task_constructor
+{
+namespace stages
+{
 class GraspGenerator : public GeneratePose
 {
 public:
@@ -22,7 +24,7 @@ public:
   {
     setProperty("object", object);
   }
-  //void setAngleDelta(double delta)
+  // void setAngleDelta(double delta)
   //{
   //  setProperty("angle_delta", delta);
   //}
@@ -47,6 +49,6 @@ public:
 protected:
   void onNewSolution(const SolutionBase& s) override;
 };
-}
-}
-}
+}  // namespace stages
+}  // namespace task_constructor
+}  // namespace moveit

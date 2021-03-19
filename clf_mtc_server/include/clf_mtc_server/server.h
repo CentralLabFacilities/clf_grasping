@@ -1,7 +1,7 @@
 #pragma once
 
-#include <ros/node_handle.h> // for NodeHandle
-#include <ros/service_server.h> // for ServiceServer
+#include <ros/node_handle.h>     // for NodeHandle
+#include <ros/service_server.h>  // for ServiceServer
 #include <actionlib/server/simple_action_server.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 

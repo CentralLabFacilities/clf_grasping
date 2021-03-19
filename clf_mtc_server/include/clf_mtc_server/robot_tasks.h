@@ -10,6 +10,8 @@ class RobotTasks
 {
 public:
   virtual void init(ros::NodeHandle&) = 0;
-  virtual moveit::task_constructor::Task createPickTask(const std::string& object_id, const std::string& support_id) = 0;
-  virtual moveit::task_constructor::Task createPlaceTask(const std::string& surface, const std::string& object_id, const geometry_msgs::PoseStamped& place_pose) = 0;
+  virtual moveit::task_constructor::Task createPickTask(const std::string& object_id,
+                                                        const std::string& support_id) = 0;
+  virtual moveit::task_constructor::Task createPlaceTask(const std::string& surface, const std::string& object_id,
+                                                         const geometry_msgs::PoseStamped& place_pose) = 0;
 };

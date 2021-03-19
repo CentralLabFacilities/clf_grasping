@@ -58,9 +58,12 @@ void Server::diagnosticTask(diagnostic_updater::DiagnosticStatusWrapper& stat)
 bool Server::clearPlanningScene(ClearPlanningSceneReq& req, ClearPlanningSceneRes& /*res*/)
 {
   ROS_INFO("Server::clearPlanningScene service called");
-  if(req.data) {
+  if (req.data)
+  {
     ROS_INFO("request.data is true, so not deleting attached objects, only unattached objects");
-  } else {
+  }
+  else
+  {
     ROS_INFO("request.data is false, so also deleting attached objects");
   }
   return ((req.data || ps::detachObjects()) && ps::clear());
@@ -103,7 +106,7 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   if (!task.plan(1))
   {
     ROS_ERROR_STREAM("planning failed");
-    pickResult_.error_code = -1; // PLANNING_FAILED
+    pickResult_.error_code = -1;  // PLANNING_FAILED
     pickResult_.result.result = pickResult_.result.NO_PLAN_FOUND;
     pickAs_.setAborted(pickResult_, "planning failed");
     storeTask(task);
@@ -122,22 +125,28 @@ void Server::executePick(const clf_grasping_msgs::PickGoalConstPtr& goal)
   }
 
   ROS_INFO_STREAM("Execute Solution...");
-  if(std::is_same<decltype(task.execute(*solution)), void>::value) { // in older mtc versions, Task::execute returns void
+  if (std::is_same<decltype(task.execute(*solution)), void>::value)
+  {  // in older mtc versions, Task::execute returns void
     task.execute(*solution);
     ROS_INFO("Task::execute has return type void, so cannot check result. Assuming success.");
-    pickResult_.error_code = 1; // SUCCESS
-  } else {
+    pickResult_.error_code = 1;  // SUCCESS
+  }
+  else
+  {
     moveit_msgs::MoveItErrorCodes execute_result = task.execute(*solution);
     ROS_INFO("Task::execute returned %i", execute_result.val);
     pickResult_.error_code = execute_result.val;
   }
 
   ROS_INFO_STREAM("Done!");
-  if(pickResult_.error_code == 1) { // SUCCESS
+  if (pickResult_.error_code == 1)
+  {  // SUCCESS
     pickResult_.result.result = pickResult_.result.SUCCESS;
     pickAs_.setSucceeded(pickResult_, "success");
     ROS_INFO("Action succeeded");
-  } else {
+  }
+  else
+  {
     pickResult_.result.result = pickResult_.result.EXECUTION_FAILED;
     pickAs_.setAborted(pickResult_, "execution failed");
     ROS_INFO("Action did not succeed");
@@ -153,9 +162,12 @@ void Server::executePlanPlace(const clf_grasping_msgs::PlanPlaceGoalConstPtr& go
   const std::vector<moveit_msgs::AttachedCollisionObject> attached_objects = ps::getAttachedObjects();
   ROS_INFO("There are %lu objects attached to the robot", attached_objects.size());
   std::string object_id;
-  if(attached_objects.size() > 0) {
+  if (attached_objects.size() > 0)
+  {
     object_id = attached_objects[0].object.id;
-  } else {
+  }
+  else
+  {
     ROS_ERROR("No objects attached to the robot, what object should be placed?");
   }
 
@@ -189,9 +201,12 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
   const std::vector<moveit_msgs::AttachedCollisionObject> attached_objects = ps::getAttachedObjects();
   ROS_INFO("There are %lu objects attached to the robot", attached_objects.size());
   std::string object_id;
-  if(attached_objects.size() > 0) {
+  if (attached_objects.size() > 0)
+  {
     object_id = attached_objects[0].object.id;
-  } else {
+  }
+  else
+  {
     ROS_ERROR("No objects attached to the robot, what object should be placed?");
   }
 
@@ -201,7 +216,7 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
   if (!task.plan(1))
   {
     ROS_ERROR_STREAM("planning failed");
-    placeResult_.error_code = -1; // PLANNING_FAILED
+    placeResult_.error_code = -1;  // PLANNING_FAILED
     placeResult_.result.result = placeResult_.result.NO_PLAN_FOUND;
     placeAs_.setAborted(placeResult_, "planning failed");
     storeTask(task);
@@ -220,21 +235,27 @@ void Server::executePlace(const clf_grasping_msgs::PlaceGoalConstPtr& goal)
   }
 
   ROS_INFO_STREAM("Execute Solution...");
-  if(std::is_same<decltype(task.execute(*solution)), void>::value) { // in older mtc versions, Task::execute returns void
+  if (std::is_same<decltype(task.execute(*solution)), void>::value)
+  {  // in older mtc versions, Task::execute returns void
     task.execute(*solution);
     ROS_INFO("Task::execute has return type void, so cannot check result. Assuming success.");
-    placeResult_.error_code = 1; // SUCCESS
-  } else {
+    placeResult_.error_code = 1;  // SUCCESS
+  }
+  else
+  {
     const moveit_msgs::MoveItErrorCodes execute_result = task.execute(*solution);
     ROS_INFO("Task::execute returned %i", execute_result.val);
     placeResult_.error_code = execute_result.val;
   }
 
   ROS_INFO_STREAM("Done!");
-  if(placeResult_.error_code == 1) { // SUCCESS
+  if (placeResult_.error_code == 1)
+  {  // SUCCESS
     placeResult_.result.result = placeResult_.result.SUCCESS;
     placeAs_.setSucceeded(placeResult_, "success");
-  } else {
+  }
+  else
+  {
     placeResult_.result.result = placeResult_.result.EXECUTION_FAILED;
     placeAs_.setAborted(placeResult_, "execution failed");
   }

@@ -21,6 +21,7 @@ public:
    */
   moveit::task_constructor::Task createPlaceTask(const std::string& surface, const std::string& object_id,
                                                  const geometry_msgs::PoseStamped& place_pose);
+
 private:
   const std::string tool_frame_;
   const std::string carry_pose_;

@@ -1,5 +1,11 @@
 #include <moveit/task_constructor/task.h>
-namespace moveit { namespace task_constructor { class Stage; } }
+namespace moveit
+{
+namespace task_constructor
+{
+class Stage;
+}
+}  // namespace moveit
 
 namespace tasks
 {
