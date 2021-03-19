@@ -33,6 +33,8 @@
 
 #include "tasks/clf_mtc_server_tiago.hpp"
 
+#include "stages/place_generator.hpp"
+
 using namespace moveit::task_constructor;
 
 typedef Task (*TaskCreator)();
@@ -324,7 +326,7 @@ ContainerBase* addPlace(ContainerBase& container, Stage* grasped, const geometry
   container.insert(Stage::pointer(connect));
 
   // place generator
-  auto place_generator = new stages::GeneratePlacePose();
+  auto place_generator = new stages::PlaceGenerator();
   place_generator->setPose(p);
   place_generator->properties().configureInitFrom(Stage::PARENT);
   place_generator->setMonitoredStage(grasped);
@@ -393,10 +395,10 @@ Task createPickPlace()
   task.add(std::move(home));
 
   geometry_msgs::PoseStamped target;
-  target.header.frame_id = "base_link";
-  target.pose.position.x = 0.5;
+  target.header.frame_id = "test2/cup_0";
+  target.pose.position.x = 0.0;
   target.pose.position.y = 0;
-  target.pose.position.z = 0.51;
+  target.pose.position.z = -0.03;
   target.pose.orientation.w = 1;
   target.pose.orientation.z = 0;
   addPlace(*task.stages(), task.stages()->findChild("pick/grasp"), target);
@@ -410,14 +412,16 @@ Task createPlace()
   Task task = createTask(&initial);
 
   {
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = "base_link";
-    int r1 = rand() % 100;
-    int r2 = rand() % 100;
-    pose.pose.position.x = 0.64 + (0.003 * r2);   // 0.64
-    pose.pose.position.y = -0.25 + (0.005 * r1);  // 0.0
-    pose.pose.position.z = object_z;
-    addPlace(*task.stages(), initial, pose);
+    geometry_msgs::PoseStamped target;
+    target.header.frame_id = "test2/cup_0";
+    target.pose.position.x = 0.0;
+    target.pose.position.y = 0;
+    target.pose.position.z = -0.06;
+    target.pose.orientation.w = 0;
+    target.pose.orientation.x = 0;
+    target.pose.orientation.y = 0;
+    target.pose.orientation.z = 1;
+    addPlace(*task.stages(), initial, target);
   }
 
   {
@@ -945,9 +949,9 @@ int main(int argc, char** argv)
   ros::NodeHandle nh("~");
   std::string side;
 
-  detachObjects(nh);
-  clearPlanningScene();
-  spawnObject(nh);
+  // detachObjects(nh);
+  // clearPlanningScene();
+  // spawnObject(nh);
 
   std::map<std::string, std::function<Task()>> tasks;
 
@@ -968,7 +972,7 @@ int main(int argc, char** argv)
 
   tasks["clf_mtc"] = f;
 
-  int maxplan = 1;
+  int maxplan = 3;
 
   while (true)
   {

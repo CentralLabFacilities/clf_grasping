@@ -347,7 +347,7 @@ void GraspGenerator::compute()
           {
             // gripper s*10 deg pitched
             tf2::Quaternion grasp;
-            grasp.setRPY((c == 0 ? 0.0 : M_PI), s*M_PI/18, 2.0 * M_PI / CYLINDER_CONST1 * a);
+            grasp.setRPY((c == 0 ? 0.0 : M_PI), s * M_PI / 18, 2.0 * M_PI / CYLINDER_CONST1 * a);
             grasp.normalize();
             tf2::Vector3 vec(-(DIST_TO_OBJ + CUP_RADIUS), 0.0, CUP_HEIGHT / 3.0 * b * (c == 1 ? -1.0 : 1.0));
             tf2::Transform trans(grasp);

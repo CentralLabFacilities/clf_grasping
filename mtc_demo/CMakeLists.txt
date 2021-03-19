@@ -28,7 +28,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(tiago src/stages/grasp_generator.hpp src/tasks/clf_mtc_server_tiago.hpp src/tiago.cpp)
+add_executable(tiago src/stages/place_generator.hpp src/stages/grasp_generator.hpp src/tasks/clf_mtc_server_tiago.hpp src/tiago.cpp)
 target_link_libraries(tiago ${catkin_LIBRARIES})
 
 install(PROGRAMS
