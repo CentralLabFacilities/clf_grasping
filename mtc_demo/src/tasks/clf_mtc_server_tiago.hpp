@@ -28,7 +28,7 @@ TiagoTasks::TiagoTasks(const std::string tool_frame, const std::string carry_pos
 
 Task TiagoTasks::createPickTask(std::string id, std::string support_id)
 {
-  Task t("tiago_grasp");
+  Task t("task");
   std::string eef = "gripper";
   std::string arm = "arm_torso";  // arm
 
@@ -80,9 +80,9 @@ Task TiagoTasks::createPickTask(std::string id, std::string support_id)
   pick->setApproachMotion(approach, 0.05, 0.15);
 
   geometry_msgs::TwistStamped lift;
-  lift.header.frame_id = "base_link";
+  lift.header.frame_id = "base_footprint";
   lift.twist.linear.z = 1.0;
-  pick->setLiftMotion(lift, 0.03, 0.05);
+  pick->setLiftMotion(lift, 0.01, 0.08);
 
   {
     auto allow_touch = new stages::ModifyPlanningScene("allow object collision");

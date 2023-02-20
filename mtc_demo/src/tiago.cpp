@@ -197,23 +197,23 @@ void spawnObject(ros::NodeHandle /*nh*/)
   o.primitives[0].dimensions[2] = 0.535;
   psi.applyCollisionObject(o);
 
-  o.id = "dish";
-  o.header.frame_id = "base_link";
-  o.primitives.resize(1);
-  o.primitives[0].type = o.primitives[0].CYLINDER;
-  o.primitives[0].dimensions.resize(2);
-  const float base_radius = 0.0265, upper_radius = 0.0395, height = 0.09;
-  o.primitives[0].dimensions[0] = height;        // height
-  o.primitives[0].dimensions[1] = upper_radius;  // radius
-  o.primitive_poses.resize(1);
-  o.primitive_poses[0].position.x = 0.19 + height / 2.0;
-  o.primitive_poses[0].position.z = 0.6;
-  o.primitive_poses[0].position.y = 0.3;
-  o.primitive_poses[0].orientation.x = 0.0;
-  o.primitive_poses[0].orientation.y = 0.7071;
-  o.primitive_poses[0].orientation.z = 0.0;
-  o.primitive_poses[0].orientation.w = 0.7071;
-  psi.applyCollisionObject(o);
+  // o.id = "dish";
+  // o.header.frame_id = "base_link";
+  // o.primitives.resize(1);
+  // o.primitives[0].type = o.primitives[0].CYLINDER;
+  // o.primitives[0].dimensions.resize(2);
+  // const float base_radius = 0.0265, upper_radius = 0.0395, height = 0.09;
+  // o.primitives[0].dimensions[0] = height;        // height
+  // o.primitives[0].dimensions[1] = upper_radius;  // radius
+  // o.primitive_poses.resize(1);
+  // o.primitive_poses[0].position.x = 0.19 + height / 2.0;
+  // o.primitive_poses[0].position.z = 0.6;
+  // o.primitive_poses[0].position.y = 0.3;
+  // o.primitive_poses[0].orientation.x = 0.0;
+  // o.primitive_poses[0].orientation.y = 0.7071;
+  // o.primitive_poses[0].orientation.z = 0.0;
+  // o.primitive_poses[0].orientation.w = 0.7071;
+  // psi.applyCollisionObject(o);
 }
 
 // ***********************************
@@ -953,6 +953,9 @@ int main(int argc, char** argv)
   // clearPlanningScene();
   // spawnObject(nh);
 
+  if (argc == 2)
+    tool_frame = argv[1];
+
   std::map<std::string, std::function<Task()>> tasks;
 
   tasks["pick"] = &createPick;
@@ -967,12 +970,14 @@ int main(int argc, char** argv)
 
   tasks["start"] = &createGotoStart;
 
-  auto tiago_mtc = new TiagoTasks("cupro_grasping_frame", "home_carry");
+  auto tiago_mtc = new TiagoTasks(tool_frame, "home");
   std::function<Task()> f = std::bind(&TiagoTasks::createPickTask, tiago_mtc, "object", "table");
 
   tasks["clf_mtc"] = f;
 
   int maxplan = 3;
+
+  std::cout << "using frame: " << tool_frame << std::endl;
 
   while (true)
   {
